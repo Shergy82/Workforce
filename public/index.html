@@ -69,10 +69,8 @@
       
       <!-- Top header bar -->
       <header class="top-header">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <button class="btn btn-secondary" id="mobile-menu-toggle" style="display: none; padding: 8px;">
-            <i class="fa-solid fa-bars"></i>
-          </button>
+        <div class="top-header-left">
+          <i class="fa-solid fa-users-gear mobile-app-logo"></i>
           <h2 id="view-title">Dashboard</h2>
         </div>
         <div class="header-actions">
@@ -85,6 +83,9 @@
               <span id="unread-count" style="display:none; position:absolute; top:-2px; right:-2px; background-color:hsl(var(--danger)); border-radius:50%; width:8px; height:8px;"></span>
             </button>
           </div>
+          <button class="btn btn-secondary mobile-profile-btn" id="mobile-profile-btn" style="padding: 8px; border-radius: 50%;">
+            <i class="fa-solid fa-circle-user"></i>
+          </button>
         </div>
       </header>
 
@@ -202,6 +203,25 @@
       <div style="text-align: center; margin-top: 20px;" id="setup-loader">
         <p style="font-size: 0.85rem; color: hsl(var(--text-muted));">Checking system configuration...</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Sheet Overlay Backdrop -->
+  <div id="sheet-overlay" class="sheet-overlay"></div>
+
+  <!-- More Drawer (slide-up) -->
+  <div id="more-drawer" class="bottom-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bottom-sheet-handle"></div>
+    <div id="more-drawer-content" class="more-drawer-content">
+      <!-- Populated dynamically -->
+    </div>
+  </div>
+
+  <!-- Profile Sheet (slide-up) -->
+  <div id="profile-sheet" class="bottom-sheet" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bottom-sheet-handle"></div>
+    <div id="profile-sheet-content" class="profile-sheet-content">
+      <!-- Populated dynamically -->
     </div>
   </div>
 

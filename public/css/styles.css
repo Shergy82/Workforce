@@ -1027,64 +1027,478 @@ table.data-table tr:last-child td {
   box-shadow: var(--shadow-md);
 }
 
-/* Responsiveness for Whiteboard */
-@media (max-width: 1200px) {
-  .whiteboard-container {
+/* ============================================================
+   BOTTOM SHEET / MORE DRAWER / PROFILE SHEET - SHARED STYLES
+   (applied at all breakpoints, only visible/triggered on mobile)
+   ============================================================ */
+
+/* Sheet Overlay Backdrop */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 180;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.sheet-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Bottom Sheet Base */
+.bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: hsl(var(--bg-card));
+  border-radius: 24px 24px 0 0;
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 82vh;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
+}
+.bottom-sheet.open {
+  transform: translateY(0);
+}
+
+/* Drag handle */
+.bottom-sheet-handle {
+  width: 40px;
+  height: 5px;
+  background: hsl(var(--border));
+  border-radius: 3px;
+  margin: 14px auto 6px;
+  flex-shrink: 0;
+}
+
+/* More Drawer */
+.more-drawer-content {
+  padding: 4px 0 0;
+}
+.more-drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 20px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  margin-bottom: 4px;
+}
+.more-drawer-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: hsl(var(--text-main));
+}
+.more-drawer-role {
+  font-size: 0.78rem;
+  color: hsl(var(--text-muted));
+  text-transform: capitalize;
+  font-weight: 500;
+}
+.more-drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 12px 12px 16px;
+}
+.more-drawer-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: hsl(var(--text-main));
+  transition: var(--transition);
+  min-height: 80px;
+}
+.more-drawer-item:active {
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+}
+.more-drawer-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: hsl(var(--bg-primary));
+  border: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: hsl(var(--primary));
+  transition: var(--transition);
+}
+.more-drawer-item:active .more-drawer-icon {
+  background: hsl(var(--primary));
+  color: white;
+  border-color: hsl(var(--primary));
+}
+
+/* Profile Sheet */
+.profile-sheet-content {
+  padding: 4px 0 0;
+}
+.profile-sheet-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 20px 24px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.profile-sheet-avatar {
+  margin-bottom: 10px;
+}
+.profile-sheet-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: hsl(var(--text-main));
+  margin-bottom: 2px;
+}
+.profile-sheet-email {
+  font-size: 0.85rem;
+  color: hsl(var(--text-muted));
+  margin-bottom: 6px;
+}
+.profile-sheet-actions {
+  padding: 8px 16px 12px;
+}
+.profile-sheet-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid hsl(var(--border));
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: hsl(var(--text-main));
+  text-align: left;
+  min-height: 56px;
+}
+.profile-sheet-action-btn i:first-child {
+  width: 28px;
+  text-align: center;
+  color: hsl(var(--primary));
+  font-size: 1.1rem;
+}
+.profile-sheet-action-btn:active {
+  opacity: 0.7;
+}
+
+/* Mobile app logo icon in header (hidden on desktop) */
+.mobile-app-logo {
+  display: none;
+}
+
+/* ============================================================
+   MOBILE & TABLET — NATIVE APP LAYOUT
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* Hide desktop sidebar entirely */
+  aside.sidebar {
+    display: none !important;
+  }
+
+  /* Remove sidebar margin - full width layout */
+  main.main-content {
+    margin-left: 0 !important;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ---- TOP HEADER ---- */
+  header.top-header {
+    height: auto;
+    min-height: 56px;
+    padding: 10px 14px;
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    gap: 0;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .top-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-app-logo {
+    display: block;
+    color: hsl(var(--primary));
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+
+  header.top-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .header-actions .btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .mobile-profile-btn {
+    border-radius: 50% !important;
+  }
+
+  /* ---- BOTTOM TAB BAR ---- */
+  nav.bottom-nav {
+    display: flex !important;
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: hsl(var(--bg-card));
+    border-top: 1px solid hsl(var(--border));
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    justify-content: space-around;
+    align-items: stretch;
+    box-shadow: 0 -2px 20px rgba(0,0,0,0.08);
+  }
+
+  nav.bottom-nav button.nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    color: hsl(var(--text-muted));
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    padding: 6px 4px;
+    position: relative;
+    min-height: 56px;
+    transition: color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  nav.bottom-nav button.nav-btn i {
+    font-size: 1.25rem;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  /* Active indicator — pill bar at top */
+  nav.bottom-nav button.nav-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    background: hsl(var(--primary));
+    border-radius: 0 0 4px 4px;
+  }
+
+  nav.bottom-nav button.nav-btn.active {
+    color: hsl(var(--primary));
+  }
+
+  nav.bottom-nav button.nav-btn.active i {
+    transform: scale(1.15);
+  }
+
+  nav.bottom-nav button.nav-btn:active {
+    opacity: 0.7;
+  }
+
+  /* More button highlight when drawer is open */
+  nav.bottom-nav button.nav-btn-more {
+    color: hsl(var(--text-muted));
+  }
+
+  /* ---- PAGE CONTENT ---- */
+  .page-container {
+    padding: 14px;
+    max-width: 100%;
+  }
+
+  /* ---- FORMS ---- */
+  /* Prevent iOS zoom on input focus */
+  .form-input, select, textarea {
+    font-size: 16px !important;
+    min-height: 48px;
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  /* ---- MODALS → BOTTOM SHEETS on mobile ---- */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+    background: rgba(0, 0, 0, 0.55) !important;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  .modal-window {
+    border-radius: 24px 24px 0 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: slideUpSheet 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  /* Add a drag handle to modal on mobile */
+  .modal-window::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 5px;
+    background: hsl(var(--border));
+    border-radius: 3px;
+    margin: 12px auto 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px 8px !important;
+  }
+
+  .modal-body {
+    padding: 12px 16px !important;
+  }
+
+  .modal-footer {
+    padding: 12px 16px !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .modal-footer button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* ---- CARDS ---- */
+  .card {
+    border-radius: var(--radius-md);
+    padding: 14px;
+  }
+
+  /* ---- KPI GRID ---- */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  /* ---- DASHBOARD GRID ---- */
+  .dashboard-grid {
     grid-template-columns: 1fr;
   }
-}
 
-/* Sleek Tab Container for Admin and general views */
-.admin-tabs-container {
-  display: flex;
-  gap: 10px;
-  border-bottom: 2px solid hsl(var(--border)/0.6);
-  padding-bottom: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
+  /* ---- TABLES → STACK ON MOBILE ---- */
+  table {
+    display: block;
+  }
+  thead {
+    display: none;
+  }
+  tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 10px;
+    background: hsl(var(--bg-card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius-md);
+    padding: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  td {
+    display: block;
+    padding: 2px 0 !important;
+    font-size: 0.85rem;
+    border: none !important;
+  }
+  td:first-child {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: hsl(var(--text-main));
+  }
+  td:last-child {
+    grid-column: 1 / -1;
+  }
 
-/* Mobile & Tablet optimizations */
-@media (max-width: 768px) {
-  /* Scrollable Tab bar on mobile */
+  /* ---- SCROLLABLE TAB BAR IN VIEWS ---- */
   .admin-tabs-container {
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     padding-bottom: 8px;
     margin-bottom: 16px;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
   }
   .admin-tabs-container::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
   }
   .admin-tabs-container button.btn {
     flex: 0 0 auto !important;
     padding: 8px 14px !important;
     font-size: 0.8rem !important;
+    white-space: nowrap;
   }
 
-  /* Prevent iOS zoom on input focus */
-  .form-input, select, textarea {
-    font-size: 16px !important;
-  }
-
-  /* Touch-friendly buttons (larger hit targets) */
-  .btn, .nav-btn, button {
-    min-height: 40px;
-  }
-
-  /* General scrollbar optimization */
-  ::-webkit-scrollbar {
-    height: 4px;
-    width: 4px;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 10px;
-  }
-
-  /* Whiteboard Drag and Drop horizontal scroll on mobile */
+  /* ---- WHITEBOARD ---- */
   .whiteboard-planner-container {
     flex-direction: column !important;
     gap: 16px !important;
@@ -1092,7 +1506,7 @@ table.data-table tr:last-child td {
   .whiteboard-sidebar {
     width: 100% !important;
     border-right: none !important;
-    border-bottom: 1px solid hsl(var(--border)/0.8) !important;
+    border-bottom: 1px solid hsl(var(--border) / 0.8) !important;
     padding-right: 0 !important;
     padding-bottom: 12px !important;
   }
@@ -1102,11 +1516,27 @@ table.data-table tr:last-child td {
     overflow-y: hidden !important;
     max-height: none !important;
     padding-bottom: 6px !important;
-    padding-right: 0 !important;
     -webkit-overflow-scrolling: touch;
   }
   .whiteboard-sidebar-cards .engineer-draggable-card {
     flex-shrink: 0 !important;
     min-width: 140px !important;
+  }
+
+  /* ---- GENERAL SCROLLBAR ---- */
+  ::-webkit-scrollbar {
+    height: 3px;
+    width: 3px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 10px;
+  }
+}
+
+/* Whiteboard breakpoint (unchanged) */
+@media (max-width: 1200px) {
+  .whiteboard-container {
+    grid-template-columns: 1fr;
   }
 }

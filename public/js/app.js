@@ -132,29 +132,167 @@ function renderSidebarMenu(role) {
 
 function renderBottomNav(role) {
   const bottomNav = document.getElementById('bottom-nav');
-  let items = [];
+  let primaryItems = [];
+  let moreItems = [];
 
   if (role === 'admin' || role === 'manager' || role === 'owner') {
-    items = [
-      { label: 'Easy Planner', hash: '#/admin', icon: 'fa-chalkboard-user' },
+    primaryItems = [
+      { label: 'Planner', hash: '#/admin', icon: 'fa-chalkboard-user' },
       { label: 'Dashboard', hash: '#/dashboard', icon: 'fa-chart-line' },
-      { label: 'Planners', hash: '#/planner', icon: 'fa-calendar-days' },
+      { label: 'Schedule', hash: '#/planner', icon: 'fa-calendar-days' },
       { label: 'Labour', hash: '#/labour', icon: 'fa-table-list' },
-      { label: 'Completions', hash: '#/completions', icon: 'fa-images' }
+    ];
+    moreItems = [
+      { label: 'Sites', hash: '#/sites', icon: 'fa-location-dot' },
+      { label: 'Engineers', hash: '#/engineers', icon: 'fa-helmet-safety' },
+      { label: 'Completions', hash: '#/completions', icon: 'fa-images' },
+      { label: 'HR', hash: '#/hr', icon: 'fa-user-tie' },
+      { label: 'Tasks', hash: '#/tasks', icon: 'fa-list-check' },
+      { label: 'Forms', hash: '#/forms', icon: 'fa-clipboard-list' },
+      { label: 'Docs', hash: '#/docs', icon: 'fa-file-lines' },
+      { label: 'Chat', hash: '#/chat', icon: 'fa-comments' },
     ];
   } else {
-    items = [
-      { label: 'My Shifts', hash: '#/mobile-jobs', icon: 'fa-calendar-check' }
+    primaryItems = [
+      { label: 'Shifts', hash: '#/mobile-jobs', icon: 'fa-calendar-check' },
+      { label: 'Docs', hash: '#/docs', icon: 'fa-file-lines' },
+      { label: 'Chat', hash: '#/chat', icon: 'fa-comments' },
+      { label: 'Forms', hash: '#/forms', icon: 'fa-clipboard-list' },
+    ];
+    moreItems = [
+      { label: 'HR', hash: '#/hr', icon: 'fa-user-tie' },
+      { label: 'Tasks', hash: '#/tasks', icon: 'fa-list-check' },
     ];
   }
 
-  bottomNav.innerHTML = items.map(item => `
-    <button class="nav-btn" onclick="location.hash='${item.hash}'">
-      <i class="fa-solid ${item.icon} fa-lg"></i>
-      <span>${item.label}</span>
-    </button>
-  `).join('');
+  // Store more items for the drawer
+  window._moreNavItems = moreItems;
+
+  bottomNav.innerHTML = [
+    ...primaryItems.map(item => `
+      <button class="nav-btn" data-hash="${item.hash}" onclick="location.hash='${item.hash}'">
+        <i class="fa-solid ${item.icon}"></i>
+        <span>${item.label}</span>
+      </button>
+    `),
+    `<button class="nav-btn nav-btn-more" id="more-nav-btn" onclick="window.openMoreDrawer()">
+      <i class="fa-solid fa-ellipsis"></i>
+      <span>More</span>
+    </button>`
+  ].join('');
 }
+
+// Build and open the More drawer
+window.openMoreDrawer = function() {
+  const user = getCurrentUser();
+  const moreItems = window._moreNavItems || [];
+  const drawerContent = document.getElementById('more-drawer-content');
+
+  drawerContent.innerHTML = `
+    <div class="more-drawer-header">
+      <i class="fa-solid fa-users-gear" style="color: hsl(var(--primary)); font-size: 1.4rem;"></i>
+      <div>
+        <div class="more-drawer-name">${user?.name || 'User'}</div>
+        <div class="more-drawer-role">${(user?.role || 'operative').charAt(0).toUpperCase() + (user?.role || '').slice(1)}</div>
+      </div>
+    </div>
+    <div class="more-drawer-grid">
+      ${moreItems.map(item => `
+        <button class="more-drawer-item" onclick="location.hash='${item.hash}'; window.closeMoreDrawer();">
+          <div class="more-drawer-icon">
+            <i class="fa-solid ${item.icon}"></i>
+          </div>
+          <span>${item.label}</span>
+        </button>
+      `).join('')}
+    </div>
+    <div style="padding: 0 16px 16px;">
+      <button class="btn btn-secondary" style="width:100%; justify-content:center; gap:10px;" onclick="window.openProfileSheet(); window.closeMoreDrawer();">
+        <i class="fa-solid fa-circle-user"></i> Profile & Settings
+      </button>
+    </div>
+  `;
+
+  document.getElementById('more-drawer').classList.add('open');
+  document.getElementById('more-drawer').setAttribute('aria-hidden', 'false');
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+window.closeMoreDrawer = function() {
+  document.getElementById('more-drawer').classList.remove('open');
+  document.getElementById('more-drawer').setAttribute('aria-hidden', 'true');
+  const overlay = document.getElementById('sheet-overlay');
+  // Only close overlay if profile sheet is also closed
+  if (!document.getElementById('profile-sheet').classList.contains('open')) {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+};
+
+window.openProfileSheet = function() {
+  const user = getCurrentUser();
+  const profileContent = document.getElementById('profile-sheet-content');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  profileContent.innerHTML = `
+    <div class="profile-sheet-header">
+      <div class="profile-sheet-avatar">
+        <i class="fa-solid fa-circle-user" style="font-size: 3rem; color: hsl(var(--primary));"></i>
+      </div>
+      <div class="profile-sheet-name">${user?.name || 'User'}</div>
+      <div class="profile-sheet-email">${user?.email || ''}</div>
+      <span class="badge badge-info" style="margin-top: 4px; text-transform: capitalize;">${user?.role || 'operative'}</span>
+    </div>
+    <div class="profile-sheet-actions">
+      <button class="profile-sheet-action-btn" id="profile-theme-btn" onclick="window.toggleThemeFromSheet()">
+        <i class="fa-solid ${isDark ? 'fa-sun' : 'fa-moon'}"></i>
+        <span>${isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+        <i class="fa-solid fa-chevron-right" style="margin-left:auto; color: hsl(var(--text-muted));"></i>
+      </button>
+      <button class="profile-sheet-action-btn" onclick="location.hash='#/engineers'; window.closeProfileSheet();">
+        <i class="fa-solid fa-id-card"></i>
+        <span>My Profile</span>
+        <i class="fa-solid fa-chevron-right" style="margin-left:auto; color: hsl(var(--text-muted));"></i>
+      </button>
+    </div>
+    <div style="padding: 0 16px 16px;">
+      <button class="btn btn-danger" style="width:100%; justify-content:center; gap:10px;" id="profile-logout-btn">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </button>
+    </div>
+  `;
+
+  document.getElementById('profile-logout-btn').addEventListener('click', async () => {
+    window.closeProfileSheet();
+    await logout();
+  });
+
+  document.getElementById('profile-sheet').classList.add('open');
+  document.getElementById('profile-sheet').setAttribute('aria-hidden', 'false');
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+
+window.toggleThemeFromSheet = function() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  localStorage.setItem('theme_manually_set', 'true');
+  const themeIcon = document.getElementById('theme-icon');
+  if (themeIcon) themeIcon.className = newTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  // Re-render profile sheet to update icon
+  window.openProfileSheet();
+};
+
+window.closeProfileSheet = function() {
+  document.getElementById('profile-sheet').classList.remove('open');
+  document.getElementById('profile-sheet').setAttribute('aria-hidden', 'true');
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
 
 // SPA Routing Controller
 async function routeView() {
@@ -370,19 +508,6 @@ function setupGlobalListeners() {
   document.documentElement.setAttribute('data-theme', savedTheme);
   document.getElementById('theme-icon').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
 
-  // Mobile navigation drawer toggle
-  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
-  mobileMenuToggle.addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar-nav');
-    sidebar.classList.toggle('mobile-open');
-  });
-
-  // Close sidebar on navigate on mobile
-  document.getElementById('desktop-menu').addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar-nav');
-    sidebar.classList.remove('mobile-open');
-  });
-
   // Notification Bell Click Handler (Subscribe and View Notifications)
   const notifBell = document.getElementById('notification-bell');
   if (notifBell) {
@@ -464,6 +589,21 @@ function setupGlobalListeners() {
       } catch (err) {
         showToast("Error loading notifications: " + err.message, "error");
       }
+    });
+  }
+
+  // Mobile profile button
+  const mobileProfileBtn = document.getElementById('mobile-profile-btn');
+  if (mobileProfileBtn) {
+    mobileProfileBtn.addEventListener('click', () => window.openProfileSheet());
+  }
+
+  // Sheet overlay closes all sheets when tapped
+  const sheetOverlay = document.getElementById('sheet-overlay');
+  if (sheetOverlay) {
+    sheetOverlay.addEventListener('click', () => {
+      window.closeMoreDrawer();
+      window.closeProfileSheet();
     });
   }
 }
