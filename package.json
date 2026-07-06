@@ -1,0 +1,40 @@
+{
+  "name": "workforce-manager-root",
+  "version": "1.0.0",
+  "description": "Root package for Workforce Hub SPA dev environment",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "npx http-server public -p 8080 -c-1",
+    "dev": "npx http-server public -p 8080 -c-1",
+    "desktop": "electron .",
+    "build:desktop": "electron-builder build --win",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "http-server": "^14.1.1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  },
+  "build": {
+    "appId": "com.company.workforcemanager",
+    "productName": "WorkforceManager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "desktop/**/*",
+      "public/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  }
+}

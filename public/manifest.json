@@ -1,0 +1,21 @@
+{
+  "short_name": "Workforce",
+  "name": "Workforce Management Platform",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/000000/worker-card.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/000000/worker-card.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}

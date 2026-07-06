@@ -1,0 +1,6 @@
+{
+  "appId": "com.company.workforcemanager",
+  "appName": "Workforce Manager",
+  "webDir": "public",
+  "bundledWebRuntime": false
+}

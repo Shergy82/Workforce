@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Workforce Platform</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <!-- Google Fonts - Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- Add FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Toast Notification Wrapper -->
+  <div id="toast-container"></div>
+
+  <!-- Modal Overlays -->
+  <div class="modal-overlay" id="app-modal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <h3 id="modal-title">Modal Header</h3>
+        <button class="btn btn-secondary" style="padding: 4px 8px;" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Dynamic Modal content goes here -->
+      </div>
+      <div class="modal-footer" id="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button class="btn btn-primary" id="modal-confirm-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Structure -->
+  <div id="app-root" style="display: none;">
+    
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="sidebar" id="sidebar-nav">
+      <div class="logo-area">
+        <i class="fa-solid fa-users-gear"></i>
+        <span>Workforce Hub</span>
+      </div>
+      <nav class="menu" id="desktop-menu">
+        <!-- Role-based items loaded dynamically -->
+      </nav>
+      <div class="user-profile-section">
+        <i class="fa-solid fa-circle-user fa-2x" style="color: hsl(var(--primary));"></i>
+        <div style="flex: 1; min-width: 0;">
+          <p style="font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="user-display-name">Loading...</p>
+          <p style="font-size: 0.7rem; color: hsl(var(--text-muted)); text-transform: uppercase;" id="user-display-role">Operative</p>
+        </div>
+        <button class="btn btn-secondary" id="logout-btn" style="padding: 6px; border-radius: 50%;">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main View Section -->
+    <main class="main-content">
+      
+      <!-- Top header bar -->
+      <header class="top-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button class="btn btn-secondary" id="mobile-menu-toggle" style="display: none; padding: 8px;">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h2 id="view-title">Dashboard</h2>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-secondary" id="theme-toggle" style="padding: 8px;">
+            <i class="fa-solid fa-sun" id="theme-icon"></i>
+          </button>
+          <div style="position: relative;">
+            <button class="btn btn-secondary" id="notification-bell" style="padding: 8px; position: relative;">
+              <i class="fa-solid fa-bell"></i>
+              <span id="unread-count" style="display:none; position:absolute; top:-2px; right:-2px; background-color:hsl(var(--danger)); border-radius:50%; width:8px; height:8px;"></span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Mount for dynamic view scripts -->
+      <div class="page-container" id="view-mount">
+        <!-- View Content loaded here -->
+      </div>
+
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <!-- Loaded dynamically based on Role -->
+    </nav>
+
+  </div>
+
+  <!-- Authentication Page Shell -->
+  <div id="auth-root" style="display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 20px; background-color: hsl(var(--bg-primary));">
+    <div class="card" style="width: 100%; max-width: 420px; box-shadow: var(--shadow-lg); border-radius: var(--radius-lg);">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <i class="fa-solid fa-users-gear fa-3x" style="color: hsl(var(--primary)); margin-bottom: 12px;"></i>
+        <h2 style="font-weight: 700; letter-spacing: -0.025em;" id="auth-title">Workforce Hub</h2>
+        <p style="color: hsl(var(--text-muted)); font-size: 0.9rem;" id="auth-subtitle">Sign in to manage your schedule and tasks</p>
+      </div>
+
+      <!-- Auth Error Container -->
+      <div id="auth-error" style="display:none; background-color: hsl(var(--danger) / 0.15); color: hsl(var(--danger)); padding: 10px; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 16px; font-weight: 500;"></div>
+
+      <!-- Sign In Form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-email">Email Address</label>
+          <input class="form-input" type="email" id="login-email" required placeholder="name@company.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input class="form-input" type="password" id="login-password" required placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width: 100%; font-weight: 600; margin-top: 10px;">
+          Sign In
+        </button>
+        <div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 0.85rem;">
+          <a href="#" id="link-goto-forgot" style="color: hsl(var(--primary)); text-decoration: underline;">Forgot Password?</a>
+          <a href="#" id="link-goto-signup" style="color: hsl(var(--primary)); text-decoration: underline;">Create Account</a>
+        </div>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signup-form" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="signup-name">Full Name</label>
+          <input class="form-input" type="text" id="signup-name" required placeholder="e.g. John Doe">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-email">Email Address</label>
+          <input class="form-input" type="email" id="signup-email" required placeholder="name@company.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-password">Password</label>
+          <input class="form-input" type="password" id="signup-password" required minlength="6" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-emergency">Emergency Contact (Name & Phone)</label>
+          <input class="form-input" type="text" id="signup-emergency" placeholder="e.g. Jane Doe: 0712345678">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="signup-quals">Qualifications / Tickets</label>
+          <input class="form-input" type="text" id="signup-quals" placeholder="e.g. CSCS Green Card, First Aid">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width: 100%; font-weight: 600; margin-top: 10px;">
+          Register Account
+        </button>
+        <div style="text-align: center; margin-top: 16px; font-size: 0.85rem;">
+          <a href="#" class="link-goto-login" style="color: hsl(var(--primary)); text-decoration: underline;">Already have an account? Sign In</a>
+        </div>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form id="forgot-form" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="forgot-email">Email Address</label>
+          <input class="form-input" type="email" id="forgot-email" required placeholder="name@company.com">
+        </div>
+        <button class="btn btn-primary" type="submit" style="width: 100%; font-weight: 600; margin-top: 10px;">
+          Send Reset Link
+        </button>
+        <div style="text-align: center; margin-top: 16px; font-size: 0.85rem;">
+          <a href="#" class="link-goto-login" style="color: hsl(var(--primary)); text-decoration: underline;">Back to Login</a>
+        </div>
+      </form>
+
+      <!-- Setup Wizard / First Register Form -->
+      <form id="register-form" style="display: none;">
+        <p style="font-size: 0.8rem; background-color: hsl(var(--success) / 0.15); color: hsl(var(--success)); padding: 8px; border-radius: var(--radius-sm); margin-bottom: 12px; font-weight: 500; text-align: center;">
+          Database is empty. Register the first ADMIN account.
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Name</label>
+          <input class="form-input" type="text" id="reg-name" required placeholder="Alex Mercer">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <input class="form-input" type="email" id="reg-email" required placeholder="admin@company.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <input class="form-input" type="password" id="reg-password" required minlength="6" placeholder="••••••••">
+        </div>
+        <button class="btn btn-success" type="submit" style="width: 100%; font-weight: 600; margin-top: 10px;">
+          Create Admin Account & Initialize
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 20px;" id="setup-loader">
+        <p style="font-size: 0.85rem; color: hsl(var(--text-muted));">Checking system configuration...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Firebase Client SDK libraries (Modular CDN) -->
+  <script type="module" src="/js/app.js"></script>
+
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registered successfully.'))
+          .catch(err => console.log('Service worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

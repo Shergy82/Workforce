@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Workforce Manager</string>
+    <string name="title_activity_main">Workforce Manager</string>
+    <string name="package_name">com.company.workforcemanager</string>
+    <string name="custom_url_scheme">com.company.workforcemanager</string>
+</resources>

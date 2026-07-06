@@ -1,0 +1,17 @@
+# Dependency directories
+node_modules/
+
+# Compiled desktop executables & distributions
+dist/
+
+# Firebase cache and logs
+.firebase/
+firebase-debug.log
+ui-debug.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Config/Secrets (contains API keys)
+public/config.json
