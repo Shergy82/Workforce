@@ -6,7 +6,7 @@ import { showModal, hideModal } from '../components/modal.js';
 import { uploadFile } from '../storage.js';
 import { openScheduleModal } from './planner.js';
 
-let plannerViewMode = 'week'; // 'week' or 'day'
+let plannerViewMode = window.innerWidth < 768 ? 'day' : 'week'; // auto day-view on mobile
 let weekStart = new Date();
 let adminRequiredPhotos = [];
 let whiteboardIsFullscreen = false;
@@ -185,8 +185,8 @@ async function renderWhiteboard(container, user) {
             </div>
 
             <!-- Date Grid Box Columns (Full spacious width) -->
-            <div style="flex: 1; min-width: 600px;">
-              <div style="display: grid; grid-template-columns: repeat(${targetDates.length}, 1fr); gap: 12px;">
+            <div style="flex: 1; min-width: 0; width: 100%;">
+              <div style="display: grid; grid-template-columns: repeat(${targetDates.length}, minmax(140px, 1fr)); gap: 12px; overflow-x: auto;">
                 ${targetDates.map(wd => {
                   const dayShifts = shifts.filter(s => s.date === wd.dateStr);
 
@@ -291,29 +291,29 @@ async function renderWhiteboard(container, user) {
               <textarea class="form-input-large" id="wb-job-desc" rows="3" required placeholder="e.g. Structural welding on the bridge joints"></textarea>
             </div>
 
-            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: start;">
-              <div class="form-group-large" style="flex: 1.2; min-width: 150px; margin-bottom: 0;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="form-group-large" style="margin-bottom: 0;">
                 <label class="form-label" for="wb-job-date">Which day?</label>
-                <input class="form-input-large" type="date" id="wb-job-date" required value="${todayStr}">
+                <input class="form-input-large" type="date" id="wb-job-date" required value="${todayStr}" style="width:100%;">
               </div>
-              <div class="form-group-large" style="flex: 0.8; min-width: 150px; margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 700; margin-bottom: 6px;">Shift Start Time</label>
-                <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px; margin-top: 4px;">
-                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main));">
-                    <input type="radio" name="wb-job-time-period" value="All Day" checked style="width: 16px; height: 16px; accent-color: hsl(var(--primary));"> All Day
+              <div class="form-group-large" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 700; margin-bottom: 8px;">Shift Start Time</label>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 10px;">
+                  <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main)); background: hsl(var(--bg-primary)); border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); padding: 10px 16px;">
+                    <input type="radio" name="wb-job-time-period" value="All Day" checked style="width: 18px; height: 18px; accent-color: hsl(var(--primary));"> All Day
                   </label>
-                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main));">
-                    <input type="radio" name="wb-job-time-period" value="AM" style="width: 16px; height: 16px; accent-color: hsl(var(--primary));"> AM Shift
+                  <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main)); background: hsl(var(--bg-primary)); border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); padding: 10px 16px;">
+                    <input type="radio" name="wb-job-time-period" value="AM" style="width: 18px; height: 18px; accent-color: hsl(var(--primary));"> AM Shift
                   </label>
-                  <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main));">
-                    <input type="radio" name="wb-job-time-period" value="PM" style="width: 16px; height: 16px; accent-color: hsl(var(--primary));"> PM Shift
+                  <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: hsl(var(--text-main)); background: hsl(var(--bg-primary)); border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); padding: 10px 16px;">
+                    <input type="radio" name="wb-job-time-period" value="PM" style="width: 18px; height: 18px; accent-color: hsl(var(--primary));"> PM Shift
                   </label>
                 </div>
-                <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: hsl(var(--text-muted)); font-weight: 600; cursor: pointer; margin-top: 4px;">
-                  <input type="checkbox" id="wb-job-specify-exact" style="width: 16px; height: 16px; accent-color: hsl(var(--primary));"> Specify exact time
+                <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.88rem; color: hsl(var(--text-muted)); font-weight: 600; cursor: pointer;">
+                  <input type="checkbox" id="wb-job-specify-exact" style="width: 18px; height: 18px; accent-color: hsl(var(--primary));"> Specify exact time
                 </label>
                 <div id="wb-job-exact-time-container" style="display: none; margin-top: 10px;">
-                  <input class="form-input-large" type="time" id="wb-job-time" value="08:00" style="padding: 6px 10px; width: 140px; font-size: 0.85rem;">
+                  <input class="form-input-large" type="time" id="wb-job-time" value="08:00" style="padding: 10px; width: 100%; font-size: 1rem;">
                 </div>
               </div>
             </div>

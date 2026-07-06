@@ -114,7 +114,12 @@ function renderSidebarMenu(role) {
       { name: 'labour', label: 'Labour Sheet', hash: '#/labour', icon: 'fa-table-list' },
       { name: 'sites', label: 'Sites & Addresses', hash: '#/sites', icon: 'fa-location-dot' },
       { name: 'engineers', label: 'Engineers Directory', hash: '#/engineers', icon: 'fa-helmet-safety' },
-      { name: 'completions', label: 'Completion Hub', hash: '#/completions', icon: 'fa-images' }
+      { name: 'completions', label: 'Completion Hub', hash: '#/completions', icon: 'fa-images' },
+      { name: 'hr', label: 'HR', hash: '#/hr', icon: 'fa-user-tie' },
+      { name: 'tasks', label: 'Tasks', hash: '#/tasks', icon: 'fa-list-check' },
+      { name: 'forms', label: 'Forms', hash: '#/forms', icon: 'fa-clipboard-list' },
+      { name: 'docs', label: 'Documents', hash: '#/docs', icon: 'fa-file-lines' },
+      { name: 'chat', label: 'Chat', hash: '#/chat', icon: 'fa-comments' },
     ];
   } else {
     items = [
@@ -508,46 +513,82 @@ function setupGlobalListeners() {
   document.documentElement.setAttribute('data-theme', savedTheme);
   document.getElementById('theme-icon').className = savedTheme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
 
-  // Notification Bell Click Handler (Subscribe and View Notifications)
+  // Notification Bell Click Handler - iOS/Android/PWA aware
   const notifBell = document.getElementById('notification-bell');
   if (notifBell) {
     notifBell.addEventListener('click', async () => {
       const user = getCurrentUser();
-      if (!user) {
-        showToast("Please sign in first.", "error");
+      if (!user) { showToast("Please sign in first.", "error"); return; }
+
+      // Detect iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      // Detect if running as installed PWA
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true;
+
+      // iOS ONLY supports notifications when installed as PWA (Add to Home Screen)
+      if (isIOS && !isPWA) {
+        const { showModal } = await import('./components/modal.js');
+        showModal({
+          title: '📲 Enable Notifications on iPhone',
+          bodyHTML: `
+            <div style="text-align:center; padding: 8px 0;">
+              <i class="fa-solid fa-mobile-screen-button" style="font-size:2.5rem; color:hsl(var(--primary)); margin-bottom:12px;"></i>
+              <p style="font-weight:700; margin-bottom:8px;">iPhone requires the app to be installed first.</p>
+              <p style="color:hsl(var(--text-muted)); font-size:0.9rem; line-height:1.6; margin-bottom:16px;">
+                To receive notifications on your iPhone, add this app to your Home Screen:
+              </p>
+              <ol style="text-align:left; font-size:0.9rem; line-height:2; color:hsl(var(--text-main)); padding-left: 20px;">
+                <li>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket"></i> at the bottom of Safari</li>
+                <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+                <li>Tap <strong>"Add"</strong> in the top right</li>
+                <li>Open the app from your Home Screen</li>
+                <li>Tap the bell again to enable notifications ✅</li>
+              </ol>
+            </div>
+          `,
+          confirmText: 'Got it!',
+          cancelText: null,
+          onConfirm: () => {}
+        });
         return;
       }
 
+      // Android / Desktop — check API support
       if (!('Notification' in window)) {
         showToast("Notifications are not supported on this browser.", "error");
         return;
       }
 
-      // If they haven't granted permission, ask for it!
+      // If they haven't granted permission yet, ask for it
       if (Notification.permission !== 'granted') {
         try {
           const permission = await Notification.requestPermission();
           if (permission === 'granted') {
-            showToast("Successfully subscribed to notifications!", "success");
-            
-            // Show a test local notification
+            showToast("Notifications enabled! ✅", "success");
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification("Workforce Hub", {
-                  body: "Notifications enabled! You'll receive updates here.",
-                  icon: "https://img.icons8.com/color/192/000000/worker-card.png"
-                });
-              });
-            } else {
-              new Notification("Workforce Hub", {
-                body: "Notifications enabled! You'll receive updates here."
+              const reg = await navigator.serviceWorker.ready;
+              reg.showNotification("Workforce Hub", {
+                body: "Notifications enabled! You'll receive shift updates here.",
+                icon: "/manifest.json"
               });
             }
+          } else if (permission === 'denied') {
+            const { showModal } = await import('./components/modal.js');
+            showModal({
+              title: 'Notifications Blocked',
+              bodyHTML: `<p style="line-height:1.6;">You have blocked notifications for this site. To enable them:<br><br>
+                <strong>Chrome Android:</strong> Tap the lock icon in the address bar → Notifications → Allow<br><br>
+                <strong>Desktop Chrome:</strong> Click the lock icon → Site Settings → Notifications → Allow</p>`,
+              confirmText: 'OK',
+              cancelText: null,
+              onConfirm: () => {}
+            });
           } else {
-            showToast("Notification permission was denied.", "warning");
+            showToast("Notification permission dismissed.", "warning");
           }
         } catch (err) {
-          showToast("Error requesting notification permission: " + err.message, "error");
+          showToast("Could not request notification permission: " + err.message, "error");
         }
         return;
       }
