@@ -13,12 +13,14 @@ export let storage = null;
 
 export async function initializeFirebaseServices() {
   try {
-    // 1. Try to fetch local config.json first
+    // 1. Try to fetch local config.json first (only valid if it returns real JSON)
     const response = await fetch('/config.json').catch(() => null);
-    if (response && response.ok) {
+    if (response && response.ok && response.headers.get('content-type')?.includes('application/json')) {
       firebaseConfig = await response.json();
-    } else {
-      // 2. Try to load from Firebase Hosting reserved urls if config.json is not found
+    }
+
+    // 2. If no valid config.json, use Firebase Hosting's auto-generated init.json
+    if (!firebaseConfig || !firebaseConfig.apiKey) {
       const hostInit = await fetch('/__/firebase/init.json').catch(() => null);
       if (hostInit && hostInit.ok) {
         firebaseConfig = await hostInit.json();
