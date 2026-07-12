@@ -121,14 +121,46 @@ export async function updateSite(siteId, updates) {
     const idx = mockDb.sites.findIndex(s => s.id === siteId);
     if (idx !== -1) {
       mockDb.sites[idx] = { ...mockDb.sites[idx], ...updates };
+      // Cascade address to mock shifts
+      if (updates.address) {
+        mockDb.shifts.forEach(s => {
+          if (s.siteId === siteId || s.projectId === siteId) {
+            s.siteAddress = updates.address;
+          }
+        });
+      }
       saveMockDb();
       return mockDb.sites[idx];
     }
     return null;
   }
-  const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  const { doc, updateDoc, collection, query, where, getDocs, writeBatch } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
   const docRef = doc(db, 'sites', siteId);
   await updateDoc(docRef, updates);
+
+  // Cascade site address changes to all matching shifts in Firestore
+  if (updates.address) {
+    try {
+      const batch = writeBatch(db);
+      
+      const shiftsQuery = query(collection(db, 'shifts'), where('siteId', '==', siteId));
+      const shiftsSnap = await getDocs(shiftsQuery);
+      shiftsSnap.forEach(sDoc => {
+        batch.update(sDoc.ref, { siteAddress: updates.address });
+      });
+
+      const projQuery = query(collection(db, 'shifts'), where('projectId', '==', siteId));
+      const projSnap = await getDocs(projQuery);
+      projSnap.forEach(sDoc => {
+        batch.update(sDoc.ref, { siteAddress: updates.address });
+      });
+
+      await batch.commit();
+    } catch (err) {
+      console.error("Failed to cascade address updates:", err);
+    }
+  }
+
   return { id: siteId, ...updates };
 }
 export const updateProject = updateSite;

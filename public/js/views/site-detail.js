@@ -5,6 +5,8 @@ import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
 import { showModal, hideModal } from '../components/modal.js';
 
+let siteUnsubscribe = null;
+
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
@@ -23,43 +25,77 @@ export async function init(container) {
 
 async function renderSiteDetails(container, user, siteId) {
   try {
-    const [sites, shifts, users] = await Promise.all([
-      getSites(),
+    if (siteUnsubscribe) {
+      siteUnsubscribe();
+      siteUnsubscribe = null;
+    }
+
+    const [shifts, usersList] = await Promise.all([
       getShifts(),
       getUsers()
     ]);
 
-    const site = sites.find(s => s.id === siteId);
-    if (!site) {
-      container.innerHTML = `
-        <div class="card" style="text-align: center; padding: 40px;">
-          <i class="fa-solid fa-triangle-exclamation fa-3x" style="color:hsl(var(--danger)); margin-bottom:16px;"></i>
-          <h3>Site Record Not Found</h3>
-          <button class="btn btn-primary" onclick="location.hash='#/sites'" style="margin-top:16px;">Back to Sites Directory</button>
-        </div>
-      `;
+    if (isMockMode) {
+      const renderMock = async () => {
+        const sites = await getSites();
+        const site = sites.find(s => s.id === siteId);
+        if (!site) {
+          container.innerHTML = `<div class="card"><p style="color:hsl(var(--danger));">Error: Site not found.</p></div>`;
+          return;
+        }
+        renderSiteHtml(container, user, site, shifts, usersList);
+      };
+      await renderMock();
       return;
     }
 
-    // Filter shifts for this site
-    const siteShifts = shifts.filter(s => s.siteId === site.id);
-    
-    // Sub-segment shifts
-    const todayStr = getLocalDateString();
-    
-    // Weekly planned work (upcoming or today)
-    const plannedShifts = siteShifts.filter(s => s.date >= todayStr && s.status !== 'cancelled');
-    
-    // Completed work history
-    const completedShifts = siteShifts.filter(s => s.status === 'completed');
-    
-    // Outstanding / Incomplete shifts
-    const outstandingIncomplete = siteShifts.filter(s => s.status === 'incomplete');
+    const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const { db } = await import('../firebase-config.js');
 
-    // Get list of unique assigned engineers
-    const activeEngineers = [...new Set(siteShifts.filter(s => s.status !== 'cancelled').map(s => s.userName))];
+    siteUnsubscribe = onSnapshot(doc(db, 'sites', siteId), (snapshot) => {
+      if (!snapshot.exists()) {
+        container.innerHTML = `
+          <div class="card" style="text-align: center; padding: 40px;">
+            <i class="fa-solid fa-triangle-exclamation fa-3x" style="color:hsl(var(--danger)); margin-bottom:16px;"></i>
+            <h3>Site Record Not Found</h3>
+            <button class="btn btn-primary" onclick="location.hash='#/sites'" style="margin-top:16px;">Back to Sites Directory</button>
+          </div>
+        `;
+        return;
+      }
+      const site = { id: snapshot.id, ...snapshot.data() };
+      renderSiteHtml(container, user, site, shifts, usersList);
+    }, (err) => {
+      console.error("Site snapshot error:", err);
+      container.innerHTML = `<p style="color:hsl(var(--danger));">Error loading real-time site updates.</p>`;
+    });
 
-    container.innerHTML = `
+  } catch (err) {
+    console.error("Error loading site details:", err);
+    container.innerHTML = `<div class="card"><p style="color:hsl(var(--danger));">Error loading site record: ${err.message}</p></div>`;
+  }
+}
+
+function renderSiteHtml(container, user, site, shifts, users) {
+  // Filter shifts for this site
+  const siteShifts = shifts.filter(s => s.siteId === site.id);
+  
+  // Sub-segment shifts
+  const todayStr = getLocalDateString();
+  
+  // Weekly planned work (upcoming or today)
+  const plannedShifts = siteShifts.filter(s => s.date >= todayStr && s.status !== 'cancelled');
+  
+  // Completed work history
+  const completedShifts = siteShifts.filter(s => s.status === 'completed');
+  
+  // Outstanding / Incomplete shifts
+  const outstandingIncomplete = siteShifts.filter(s => s.status === 'incomplete');
+
+  // Get list of unique assigned engineers
+  const activeEngineers = [...new Set(siteShifts.filter(s => s.status !== 'cancelled').map(s => s.userName))];
+
+  container.innerHTML = `
       <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <button class="btn btn-secondary" onclick="location.hash='#/sites'">
           <i class="fa-solid fa-arrow-left"></i> Back to Directory
@@ -185,7 +221,7 @@ async function renderSiteDetails(container, user, siteId) {
         </div>
 
         <!-- Right Column: Labour Allocations, Weekly Plan, Completed Logs, Incomplete Issues -->
-        <div style="display: flex; flex-direction: column; gap: 24px; grid-column: span 2;">
+        <div class="site-detail-right-col">
           
           <!-- Assigned Team Badge list -->
           <div class="card" style="margin-bottom: 0;">
@@ -292,10 +328,6 @@ async function renderSiteDetails(container, user, siteId) {
     `;
 
     setupSiteDetailEvents(container, site, user, users);
-  } catch (err) {
-    console.error("Error loading site details:", err);
-    container.innerHTML = `<div class="card"><p style="color:hsl(var(--danger));">Error loading site record: ${err.message}</p></div>`;
-  }
 }
 
 function setupSiteDetailEvents(container, site, user, allUsers) {
@@ -313,7 +345,6 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
             await updateSite(site.id, { status: nextStatus });
             showToast(`Site status changed to ${nextStatus}.`, "success");
             hideModal();
-            renderSiteDetails(container, user, site.id);
           } catch (err) {
             showToast(err.message, "error");
           }
@@ -430,7 +461,6 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
             });
             showToast("Site record updated successfully!", "success");
             hideModal();
-            renderSiteDetails(container, user, site.id);
           } catch (err) {
             showToast(err.message, "error");
           }
@@ -467,7 +497,6 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
 
         await updateSite(site.id, { files: updatedFiles });
         showToast(`Document "${file.name}" uploaded successfully!`, "success");
-        renderSiteDetails(container, user, site.id);
       } catch (err) {
         showToast(err.message, "error");
         uploadDocBtn.disabled = false;
@@ -501,7 +530,6 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
 
         await updateSite(site.id, { photos: updatedPhotos });
         showToast(`Photo uploaded to gallery.`, "success");
-        renderSiteDetails(container, user, site.id);
       } catch (err) {
         showToast(err.message, "error");
         uploadPhotoBtn.disabled = false;
@@ -519,31 +547,56 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
     });
   });
 
-  container.addEventListener('click', async (e) => {
-    const deleteFileBtn = e.target.closest('button[data-action="delete-file"]');
-    if (deleteFileBtn) {
-      const idx = parseInt(deleteFileBtn.getAttribute('data-idx'));
-      if (confirm("Are you sure you want to delete this document?")) {
-        const updatedFiles = [...site.files];
-        updatedFiles.splice(idx, 1);
-        await updateSite(site.id, { files: updatedFiles });
-        showToast("Document deleted.", "success");
-        renderSiteDetails(container, user, site.id);
-      }
-    }
+  container.querySelectorAll('button[data-action="delete-file"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute('data-idx'));
+      showModal({
+        title: 'Delete Document',
+        bodyHTML: '<p>Are you sure you want to permanently delete this document from the site record?</p>',
+        confirmText: 'Yes, Delete',
+        onConfirm: async () => {
+          try {
+            const updatedFiles = [...site.files];
+            updatedFiles.splice(idx, 1);
+            await updateSite(site.id, { files: updatedFiles });
+            showToast("Document deleted.", "success");
+            hideModal();
+          } catch (err) {
+            showToast(err.message, "error");
+          }
+        }
+      });
+    });
+  });
 
-    const deletePhotoBtn = e.target.closest('button[data-action="delete-photo"]');
-    if (deletePhotoBtn) {
-      const idx = parseInt(deletePhotoBtn.getAttribute('data-idx'));
-      if (confirm("Are you sure you want to delete this photo?")) {
-        const updatedPhotos = [...site.photos];
-        updatedPhotos.splice(idx, 1);
-        await updateSite(site.id, { photos: updatedPhotos });
-        showToast("Photo deleted.", "success");
-        renderSiteDetails(container, user, site.id);
-      }
-    }
+  container.querySelectorAll('button[data-action="delete-photo"]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute('data-idx'));
+      showModal({
+        title: 'Delete Photo',
+        bodyHTML: '<p>Are you sure you want to permanently delete this photo from the site record?</p>',
+        confirmText: 'Yes, Delete',
+        onConfirm: async () => {
+          try {
+            const updatedPhotos = [...site.photos];
+            updatedPhotos.splice(idx, 1);
+            await updateSite(site.id, { photos: updatedPhotos });
+            showToast("Photo deleted.", "success");
+            hideModal();
+          } catch (err) {
+            showToast(err.message, "error");
+          }
+        }
+      });
+    });
   });
 }
 
-export function destroy() {}
+export function destroy() {
+  if (siteUnsubscribe) {
+    siteUnsubscribe();
+    siteUnsubscribe = null;
+  }
+}

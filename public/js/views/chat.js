@@ -102,6 +102,9 @@ function setupChatEvents(user, chats, users) {
       const chatContainer = document.querySelector('.chat-container');
       if (chatContainer) chatContainer.classList.add('chat-active');
 
+      const chatType = btn.getAttribute('data-type');
+      let chatId = btn.getAttribute('data-chat-id');
+
       if (chatType === 'direct') {
         const targetUserId = btn.getAttribute('data-target-user-id');
         const targetUser = users.find(u => u.id === targetUserId);

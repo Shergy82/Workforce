@@ -218,6 +218,10 @@ main.main-content {
     flex-shrink: 0 !important;
   }
 
+  .site-detail-right-col {
+    grid-column: span 1 !important;
+  }
+
   nav.bottom-nav {
     display: flex;
   }
@@ -402,6 +406,13 @@ nav.bottom-nav button.nav-btn.active {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
+}
+
+.site-detail-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  grid-column: span 2;
 }
 
 .kpi-grid {

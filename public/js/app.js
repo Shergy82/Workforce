@@ -75,21 +75,26 @@ async function handleAuthStateChange(user) {
                   checkForAwaitingShifts(user);
                 }
                 if (Notification.permission === 'granted' && user.pushNotificationsEnabled !== false) {
-                  if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.ready.then(reg => {
-                      reg.showNotification(notif.title, {
-                        body: notif.message,
-                        icon: '/manifest.json',
-                        badge: '/manifest.json',
-                        tag: change.doc.id,
-                        renotify: true
+                  if (document.visibilityState === 'hidden') {
+                    if ('serviceWorker' in navigator) {
+                      navigator.serviceWorker.ready.then(reg => {
+                        reg.showNotification(notif.title, {
+                          body: notif.message,
+                          icon: '/manifest.json',
+                          badge: '/manifest.json',
+                          tag: change.doc.id,
+                          renotify: true
+                        });
                       });
-                    });
+                    } else {
+                      new Notification(notif.title, {
+                        body: notif.message,
+                        icon: '/manifest.json'
+                      });
+                    }
                   } else {
-                    new Notification(notif.title, {
-                      body: notif.message,
-                      icon: '/manifest.json'
-                    });
+                    // Show a toast in foreground
+                    showToast(`${notif.title}: ${notif.message}`, "info");
                   }
                 }
               }
