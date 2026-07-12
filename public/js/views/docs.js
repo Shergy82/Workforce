@@ -1,6 +1,6 @@
 import { getCurrentUser, isManager } from '../auth.js';
 import { getDocuments, createDocument, signDocument, getUsers } from '../db.js';
-import { formatDate, getLoadingSpinner } from '../utils.js';
+import { formatDate, getLoadingSpinner, viewFile } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { showModal, hideModal } from '../components/modal.js';
 import { uploadFile } from '../storage.js';
@@ -107,7 +107,7 @@ function renderFilesList(files, user, users) {
         <div style="display:flex; align-items:center; gap:12px;">
           <i class="fa-regular fa-file-pdf fa-2x" style="color:hsl(var(--danger));"></i>
           <div>
-            <a href="${file.url}" target="_blank" class="doc-view-link" data-doc-id="${file.id}" style="font-weight:600; font-size:0.95rem; text-decoration:underline; color:hsl(var(--primary));">
+            <a href="#" class="doc-view-link" data-url="${file.url}" data-name="${file.title}" data-doc-id="${file.id}" style="font-weight:600; font-size:0.95rem; text-decoration:underline; color:hsl(var(--primary));">
               ${file.title}
             </a>
             <p style="font-size:0.8rem; color:hsl(var(--text-muted));">${file.description}</p>
@@ -164,12 +164,27 @@ function setupDocEvents(user, documents, users) {
 
   // Track file clicks / views
   document.querySelectorAll('.doc-view-link').forEach(link => {
-    link.addEventListener('click', async () => {
+    link.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const url = link.getAttribute('data-url');
+      const name = link.getAttribute('data-name');
       const docId = link.getAttribute('data-doc-id');
+      
+      viewFile(url, name);
+
       const docItem = documents.find(d => d.id === docId);
-      if (docItem && docItem.views && !docItem.views.includes(user.id)) {
-        docItem.views.push(user.id);
-        const { updateUser } = await import('../db.js'); // trigger standard saves (or bypass rules logic)
+      if (docItem) {
+        const views = docItem.views ? [...docItem.views] : [];
+        if (!views.includes(user.id)) {
+          views.push(user.id);
+          const { db } = await import('../firebase-config.js');
+          const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+          try {
+            await updateDoc(doc(db, 'documents', docId), { views });
+          } catch(err) {
+            console.error("Failed to update doc view count:", err);
+          }
+        }
       }
     });
   });

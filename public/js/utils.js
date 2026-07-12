@@ -69,3 +69,55 @@ export function getLoadingSpinner() {
     </div>
   `;
 }
+
+// Open or download a file from a URL using blob fetch or Google Docs viewer
+export async function viewFile(url, name) {
+  try {
+    const ext = name.split('.').pop().toLowerCase();
+    if (['xls', 'xlsx', 'doc', 'docx', 'ppt', 'pptx'].includes(ext)) {
+      // Use Google Docs Viewer to display office files inline
+      window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(url)}`, '_blank');
+      return;
+    }
+
+    // For PDFs and images, fetch as a blob and open the local same-origin blob URL
+    // to bypass PWA scope/sandbox restrictions on external domains
+    try {
+      const { showToast } = await import('./components/toast.js');
+      showToast('Loading file view...', 'info');
+    } catch(e) {}
+    
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Fetch failed');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+  } catch (err) {
+    // Fallback: open raw URL in new window if blob fetch fails
+    window.open(url, '_blank');
+  }
+}
+
+export async function downloadFile(url, name) {
+  try {
+    try {
+      const { showToast } = await import('./components/toast.js');
+      showToast('Preparing download...', 'info');
+    } catch(e) {}
+    
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch file');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch (err) {
+    // Fallback if blob fetch fails
+    window.open(url, '_blank');
+  }
+}

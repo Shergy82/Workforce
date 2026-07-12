@@ -1,29 +1,8 @@
 import { getCurrentUser } from '../auth.js';
 import { getShifts, updateShift, getSites, updateSite } from '../db.js';
-import { formatDate, getLoadingSpinner } from '../utils.js';
+import { formatDate, getLoadingSpinner, viewFile, downloadFile } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
-
-// Download a file from a URL as a blob to bypass cross-origin restrictions
-async function downloadFile(url, name) {
-  try {
-    showToast('Preparing download...', 'info');
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Failed to fetch file');
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = name || 'download';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-  } catch (err) {
-    // Fallback: open in new tab if blob fetch fails (e.g. CORS)
-    window.open(url, '_blank');
-  }
-}
 
 export async function init(container) {
   const user = getCurrentUser();
@@ -303,7 +282,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
   container.querySelectorAll('.btn-file-view').forEach(btn => {
     btn.addEventListener('click', () => {
       const url = btn.getAttribute('data-url');
-      window.open(url, '_blank');
+      const name = btn.getAttribute('data-name');
+      viewFile(url, name);
     });
   });
 

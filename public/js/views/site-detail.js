@@ -1,6 +1,6 @@
 import { getCurrentUser, isManager } from '../auth.js';
 import { getSites, updateSite, getShifts, getUsers, deleteSite } from '../db.js';
-import { formatDate, getLoadingSpinner, getLocalDateString } from '../utils.js';
+import { formatDate, getLoadingSpinner, getLocalDateString, viewFile, downloadFile } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
 import { showModal, hideModal } from '../components/modal.js';
@@ -146,7 +146,7 @@ async function renderSiteDetails(container, user, siteId) {
                   <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
                     <i class="fa-solid ${f.type.includes('pdf') ? 'fa-file-pdf text-red-500' : f.type.includes('image') ? 'fa-file-image text-blue-500' : 'fa-file-lines'} fa-lg"></i>
                     <div style="min-width: 0;">
-                      <a href="${f.url}" target="_blank" style="font-size: 0.85rem; font-weight: 600; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${f.name}</a>
+                      <a href="#" class="btn-site-file-view" data-url="${f.url}" data-name="${f.name}" style="font-size: 0.85rem; font-weight: 600; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${f.name}</a>
                       <span style="font-size: 0.7rem; color: hsl(var(--text-muted));">Uploaded by ${f.uploadedBy || 'Admin'} on ${f.date}</span>
                     </div>
                   </div>
@@ -509,6 +509,15 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
       }
     });
   }
+
+  container.querySelectorAll('.btn-site-file-view').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = btn.getAttribute('data-url');
+      const name = btn.getAttribute('data-name');
+      viewFile(url, name);
+    });
+  });
 
   container.addEventListener('click', async (e) => {
     const deleteFileBtn = e.target.closest('button[data-action="delete-file"]');

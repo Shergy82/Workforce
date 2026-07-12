@@ -188,6 +188,36 @@ main.main-content {
     overflow-x: hidden;
   }
 
+  #app-root {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  header.top-header {
+    padding: 0 12px !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  
+  .top-header-left {
+    min-width: 0 !important;
+    flex: 1 !important;
+    overflow: hidden !important;
+  }
+  
+  #view-title {
+    font-size: 1.05rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .header-actions {
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
   nav.bottom-nav {
     display: flex;
   }
