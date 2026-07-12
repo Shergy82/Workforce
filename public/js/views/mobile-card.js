@@ -248,15 +248,13 @@ async function renderJobCardDetail(container, user, shiftId) {
           <h4 style="font-weight: 700; font-size: 0.9rem; margin-bottom: 10px;"><i class="fa-solid fa-folder-open"></i> Site Drawings & RAMS</h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             ${site.files && site.files.length > 0 ? site.files.map(f => `
-              <div style="padding: 8px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2);">
+              <a href="${f.url}" target="_blank" download="${f.name}" style="padding: 8px 12px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2); text-decoration: none; color: inherit; width: 100%; box-sizing: border-box; transition: var(--transition);" onmouseover="this.style.backgroundColor='hsl(var(--bg-primary)/0.4)'" onmouseout="this.style.backgroundColor='hsl(var(--bg-primary)/0.2)'">
                 <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
-                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf text-red-500' : 'fa-file-lines'} fa-lg"></i>
-                  <a href="${f.url}" target="_blank" download="${f.name}" style="font-size: 0.8rem; font-weight: 600; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; flex: 1; color: hsl(var(--text-main));">${f.name}</a>
+                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf text-red-500' : 'fa-file-lines'} fa-lg" style="flex-shrink: 0;"></i>
+                  <span style="font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${f.name}</span>
                 </div>
-                <a href="${f.url}" target="_blank" download="${f.name}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">
-                  <i class="fa-solid fa-cloud-arrow-down"></i> Save
-                </a>
-              </div>
+                <i class="fa-solid fa-cloud-arrow-down" style="color: hsl(var(--text-muted)); margin-left: 8px; flex-shrink: 0;"></i>
+              </a>
             `).join('') : '<p style="color: hsl(var(--text-muted)); font-size: 0.8rem; font-style: italic; text-align: center;">No site documents loaded.</p>'}
           </div>
         </div>
