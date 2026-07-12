@@ -59,11 +59,40 @@ async function handleAuthStateChange(user) {
         const { collection, query, where, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
         const { db } = await import('./firebase-config.js');
         const q = query(collection(db, 'notifications'), where('userId', '==', user.id), where('read', '==', false));
+        let isFirstLoad = true;
         window.notifUnsubscribe = onSnapshot(q, (snapshot) => {
           const badge = document.getElementById('unread-count');
           if (badge) {
             badge.style.display = snapshot.size > 0 ? 'block' : 'none';
           }
+
+          // Trigger native browser notification on new unread notifications
+          if (!isFirstLoad) {
+            snapshot.docChanges().forEach(change => {
+              if (change.type === 'added') {
+                const notif = change.doc.data();
+                if (Notification.permission === 'granted' && user.pushNotificationsEnabled !== false) {
+                  if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(reg => {
+                      reg.showNotification(notif.title, {
+                        body: notif.message,
+                        icon: '/manifest.json',
+                        badge: '/manifest.json',
+                        tag: change.doc.id,
+                        renotify: true
+                      });
+                    });
+                  } else {
+                    new Notification(notif.title, {
+                      body: notif.message,
+                      icon: '/manifest.json'
+                    });
+                  }
+                }
+              }
+            });
+          }
+          isFirstLoad = false;
         }, (err) => {
           console.error("Notifications snapshot error:", err);
         });
@@ -566,18 +595,35 @@ function setupGlobalListeners() {
           const { getNotifications, markNotificationRead } = await import('./db.js');
           const { showModal, hideModal } = await import('./components/modal.js');
           const list = await getNotifications(user.id);
+          const pushEnabled = user.pushNotificationsEnabled !== false;
           
-          const notifHTML = list.length === 0 
-            ? `<div style="text-align: center; padding: 24px; color: hsl(var(--text-muted)); font-style: italic;">No recent notifications.</div>`
-            : `<div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
-                ${list.slice(0, 10).map(n => `
-                  <div style="padding: 10px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)); background-color: ${n.read ? 'hsl(var(--bg-primary)/0.3)' : 'hsl(var(--primary)/0.03)'}; border-left: 3px solid ${n.read ? 'hsl(var(--border))' : 'hsl(var(--primary))'}; position: relative;">
-                    <div style="font-weight: 700; font-size: 0.85rem; color: hsl(var(--text-main));">${n.title}</div>
-                    <div style="font-size: 0.78rem; color: hsl(var(--text-muted)); margin-top: 2px;">${n.message}</div>
-                    <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${new Date(n.createdAt).toLocaleDateString()}</div>
-                  </div>
-                `).join('')}
-               </div>`;
+          const notifHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; margin-bottom:16px; border-radius:8px; background:hsl(var(--bg-primary)/0.6); border:1px solid hsl(var(--border)/0.8); flex-wrap:wrap; gap:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-bell${pushEnabled ? '' : '-slash'}" style="color:hsl(var(--${pushEnabled ? 'primary' : 'text-muted'})); font-size:1.1rem;"></i>
+                <div style="font-size:0.82rem;">
+                  <span style="font-weight:700;">Push Status:</span> 
+                  <span style="font-weight:800; color:hsl(var(--${pushEnabled ? 'success' : 'danger'}));">${pushEnabled ? 'Subscribed' : 'Unsubscribed'}</span>
+                </div>
+              </div>
+              <button class="btn ${pushEnabled ? 'btn-secondary' : 'btn-primary'}" id="btn-toggle-notif-subscription" style="font-size:0.75rem; padding:6px 12px; flex:unset;">
+                <i class="fa-solid fa-bell${pushEnabled ? '-slash' : ''}" style="margin-right:4px;"></i>
+                ${pushEnabled ? 'Unsubscribe' : 'Subscribe'}
+              </button>
+            </div>
+            ${list.length === 0 
+              ? `<div style="text-align: center; padding: 24px; color: hsl(var(--text-muted)); font-style: italic;">No recent notifications.</div>`
+              : `<div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                  ${list.slice(0, 10).map(n => `
+                    <div style="padding: 10px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)); background-color: ${n.read ? 'hsl(var(--bg-primary)/0.3)' : 'hsl(var(--primary)/0.03)'}; border-left: 3px solid ${n.read ? 'hsl(var(--border))' : 'hsl(var(--primary))'}; position: relative;">
+                      <div style="font-weight: 700; font-size: 0.85rem; color: hsl(var(--text-main));">${n.title}</div>
+                      <div style="font-size: 0.78rem; color: hsl(var(--text-muted)); margin-top: 2px;">${n.message}</div>
+                      <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${new Date(n.createdAt).toLocaleDateString()}</div>
+                    </div>
+                  `).join('')}
+                 </div>`
+            }
+          `;
 
           showModal({
             title: 'Recent Notifications',
@@ -595,6 +641,42 @@ function setupGlobalListeners() {
               hideModal();
             }
           });
+
+          // Wire up subscription toggle button
+          const toggleSubBtn = document.getElementById('btn-toggle-notif-subscription');
+          if (toggleSubBtn) {
+            toggleSubBtn.addEventListener('click', async () => {
+              const currentStatus = user.pushNotificationsEnabled !== false;
+              if (currentStatus) {
+                try {
+                  const { updateUser } = await import('./db.js');
+                  await updateUser(user.id, { pushNotificationsEnabled: false });
+                  user.pushNotificationsEnabled = false;
+                  showToast("Unsubscribed from push notifications.", "warning");
+                  hideModal();
+                  await showNotificationsListModal();
+                } catch (err) {
+                  showToast(err.message, "error");
+                }
+              } else {
+                try {
+                  const permission = await Notification.requestPermission();
+                  if (permission === 'granted') {
+                    const { updateUser } = await import('./db.js');
+                    await updateUser(user.id, { pushNotificationsEnabled: true });
+                    user.pushNotificationsEnabled = true;
+                    showToast("Subscribed to push notifications! ✅", "success");
+                    hideModal();
+                    await showNotificationsListModal();
+                  } else {
+                    showToast("Notification permission not granted.", "error");
+                  }
+                } catch (err) {
+                  showToast(err.message, "error");
+                }
+              }
+            });
+          }
         } catch (err) {
           showToast("Error loading notifications: " + err.message, "error");
         }

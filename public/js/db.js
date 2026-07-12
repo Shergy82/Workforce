@@ -638,10 +638,11 @@ export async function getNotifications(userId) {
   if (isMockMode) {
     return mockDb.notifications.filter(n => n.userId === userId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
-  const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const q = query(collection(db, 'notifications'), where('userId', '==', userId), orderBy('createdAt', 'desc'));
+  const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  const q = query(collection(db, 'notifications'), where('userId', '==', userId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 export async function createNotification(userId, title, message, type = 'system') {
