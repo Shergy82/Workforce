@@ -230,13 +230,13 @@
   </div>
 
   <!-- Import Firebase Client SDK libraries (Modular CDN) -->
-  <script type="module" src="/js/app.js?v=26"></script>
+  <script type="module" src="/js/app.js?v=27"></script>
 
   <script>
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=26')
+        navigator.serviceWorker.register('/sw.js?v=27')
           .then(reg => console.log('Service Worker registered successfully.'))
           .catch(err => console.log('Service worker registration failed:', err));
       });

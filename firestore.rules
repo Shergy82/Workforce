@@ -126,9 +126,9 @@ service cloud.firestore {
     }
 
     match /chats/{chatId} {
-      allow read: if isAuthenticated() && (isAdmin() || request.auth.uid in resource.data.members);
+      allow read: if isAuthenticated() && (isManager() || request.auth.uid in resource.data.members || resource.data.type == 'general');
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (isAdmin() || request.auth.uid in resource.data.members);
+      allow update: if isAuthenticated() && (isManager() || request.auth.uid in resource.data.members || resource.data.type == 'general');
       allow delete: if isAdmin();
     }
 
