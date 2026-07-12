@@ -2,23 +2,52 @@ import { getCurrentUser } from '../auth.js';
 import { getShifts } from '../db.js';
 import { formatDate, getLoadingSpinner, getLocalDateString } from '../utils.js';
 
+let shiftsUnsubscribe = null;
+
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
 
   container.innerHTML = getLoadingSpinner();
-  await renderMobileJobList(container, user);
+
+  const { isMockMode } = await import('../firebase-config.js');
+  if (isMockMode) {
+    await renderMobileJobList(container, user);
+    return;
+  }
+
+  // Real-time Firestore listener for shifts assigned to this user
+  const { collection, query, where, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  const { db } = await import('../firebase-config.js');
+
+  const q = query(collection(db, 'shifts'), where('userId', '==', user.id));
+
+  shiftsUnsubscribe = onSnapshot(q, (snapshot) => {
+    const myShifts = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    renderMobileJobListHtml(container, user, myShifts);
+  }, (err) => {
+    console.error("Shifts snapshot error:", err);
+    container.innerHTML = `<p style="color:hsl(var(--danger));">Error loading real-time schedule.</p>`;
+  });
 }
 
 async function renderMobileJobList(container, user) {
   try {
     const allShifts = await getShifts();
-    
-    // Operatives only see their own shifts
     const myShifts = allShifts
       .filter(s => s.userId === user.id)
       .sort((a, b) => a.date.localeCompare(b.date));
+    renderMobileJobListHtml(container, user, myShifts);
+  } catch (err) {
+    console.error("Error loading mock mobile shifts:", err);
+    container.innerHTML = `<div class="card"><p style="color:hsl(var(--danger));">Error loading schedule: ${err.message}</p></div>`;
+  }
+}
 
+function renderMobileJobListHtml(container, user, myShifts) {
+  try {
     const todayStr = getLocalDateString();
 
     // Segment shifts
@@ -138,4 +167,9 @@ function renderJobCard(s) {
   `;
 }
 
-export function destroy() {}
+export function destroy() {
+  if (shiftsUnsubscribe) {
+    shiftsUnsubscribe();
+    shiftsUnsubscribe = null;
+  }
+}

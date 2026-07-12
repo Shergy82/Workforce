@@ -13,7 +13,7 @@
   
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   
   <!-- Add FontAwesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -230,13 +230,13 @@
   </div>
 
   <!-- Import Firebase Client SDK libraries (Modular CDN) -->
-  <script type="module" src="/js/app.js?v=25"></script>
+  <script type="module" src="/js/app.js?v=26"></script>
 
   <script>
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=25')
+        navigator.serviceWorker.register('/sw.js?v=26')
           .then(reg => console.log('Service Worker registered successfully.'))
           .catch(err => console.log('Service worker registration failed:', err));
       });

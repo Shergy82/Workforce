@@ -4,6 +4,9 @@ import { formatDate, getLoadingSpinner, viewFile, downloadFile } from '../utils.
 import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
 
+let shiftDetailUnsubscribe = null;
+let siteDetailUnsubscribe = null;
+
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
@@ -17,7 +20,50 @@ export async function init(container) {
   }
 
   container.innerHTML = getLoadingSpinner();
-  await renderJobCardDetail(container, user, shiftId);
+
+  const { isMockMode } = await import('../firebase-config.js');
+  if (isMockMode) {
+    await renderJobCardDetail(container, user, shiftId);
+    return;
+  }
+
+  await setupRealtimeShiftDetail(container, user, shiftId);
+}
+
+async function setupRealtimeShiftDetail(container, user, shiftId) {
+  if (shiftDetailUnsubscribe) shiftDetailUnsubscribe();
+  if (siteDetailUnsubscribe) siteDetailUnsubscribe();
+
+  const { doc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  const { db } = await import('../firebase-config.js');
+
+  shiftDetailUnsubscribe = onSnapshot(doc(db, 'shifts', shiftId), (shiftSnap) => {
+    if (!shiftSnap.exists()) {
+      container.innerHTML = `
+        <div class="card" style="text-align: center; padding: 40px;">
+          <i class="fa-solid fa-triangle-exclamation fa-3x" style="color:hsl(var(--danger)); margin-bottom:16px;"></i>
+          <h3>Job Card Not Found</h3>
+          <button class="btn btn-primary" onclick="location.hash='#/mobile-jobs'" style="margin-top:16px;">Back to Shift List</button>
+        </div>
+      `;
+      return;
+    }
+    const shift = { id: shiftSnap.id, ...shiftSnap.data() };
+    const siteId = shift.siteId || shift.projectId;
+
+    if (siteDetailUnsubscribe) siteDetailUnsubscribe();
+    
+    siteDetailUnsubscribe = onSnapshot(doc(db, 'sites', siteId), (siteSnap) => {
+      const site = siteSnap.exists() ? { id: siteSnap.id, ...siteSnap.data() } : { files: [], notes: '', address: shift.siteAddress };
+      renderJobCardDetailHtml(container, user, shift, site);
+    }, (err) => {
+      console.error("Site detail snapshot error:", err);
+      renderJobCardDetailHtml(container, user, shift, { files: [], notes: '', address: shift.siteAddress });
+    });
+  }, (err) => {
+    console.error("Shift detail snapshot error:", err);
+    container.innerHTML = `<p style="color:hsl(var(--danger));">Error loading real-time job card.</p>`;
+  });
 }
 
 async function renderJobCardDetail(container, user, shiftId) {
@@ -41,6 +87,15 @@ async function renderJobCardDetail(container, user, shiftId) {
 
     const targetSiteId = shift.siteId || shift.projectId;
     const site = sites.find(s => s.id === targetSiteId) || { files: [], notes: '' };
+    renderJobCardDetailHtml(container, user, shift, site);
+  } catch (err) {
+    console.error("Error loading mock job card detail:", err);
+    container.innerHTML = `<div class="card"><p style="color:hsl(var(--danger));">Error loading details: ${err.message}</p></div>`;
+  }
+}
+
+function renderJobCardDetailHtml(container, user, shift, site) {
+  try {
 
     // Get color badge class
     let statusClass = 'status-pending';
@@ -520,4 +575,13 @@ function setupJobCardEvents(container, shift, site, currentUser) {
   }
 }
 
-export function destroy() {}
+export function destroy() {
+  if (shiftDetailUnsubscribe) {
+    shiftDetailUnsubscribe();
+    shiftDetailUnsubscribe = null;
+  }
+  if (siteDetailUnsubscribe) {
+    siteDetailUnsubscribe();
+    siteDetailUnsubscribe = null;
+  }
+}

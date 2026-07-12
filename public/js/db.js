@@ -651,19 +651,66 @@ export async function getChats() {
   const isManagerOrAbove = role === 'admin' || role === 'manager' || role === 'owner';
 
   if (isMockMode) {
-    if (!isManagerOrAbove) {
-      return (mockDb.chats || []).filter(c => c.members.includes(currentUid));
+    let mockList = mockDb.chats || [];
+    if (!isManagerOrAbove && currentUid) {
+      mockList = mockList.filter(c => c.members.includes(currentUid) || c.type === 'general');
     }
-    return mockDb.chats || [];
+    // Provision general channel in mock mode if missing
+    if (!mockList.some(c => c.type === 'general')) {
+      const newGeneral = {
+        id: 'general-channel',
+        name: 'Company Announcement & General Chat',
+        type: 'general',
+        members: []
+      };
+      mockDb.chats.push(newGeneral);
+      saveMockDb();
+      mockList.push(newGeneral);
+    }
+    return mockList;
   }
 
   const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  let ref = collection(db, 'chats');
-  if (!isManagerOrAbove && currentUid) {
-    ref = query(ref, where('members', 'array-contains', currentUid));
+  const ref = collection(db, 'chats');
+  
+  let q;
+  if (isManagerOrAbove) {
+    q = ref;
+  } else {
+    // Return chats where user is a member
+    q = query(ref, where('members', 'array-contains', currentUid));
   }
-  const snapshot = await getDocs(ref);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  
+  const snapshot = await getDocs(q);
+  const chatsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // If not manager, also retrieve general channels (where type == 'general')
+  if (!isManagerOrAbove) {
+    const generalQ = query(ref, where('type', '==', 'general'));
+    const generalSnap = await getDocs(generalQ);
+    generalSnap.forEach(gDoc => {
+      if (!chatsList.some(c => c.id === gDoc.id)) {
+        chatsList.push({ id: gDoc.id, ...gDoc.data() });
+      }
+    });
+  }
+
+  // Provision general channel if it doesn't exist
+  const hasGeneral = chatsList.some(c => c.type === 'general');
+  if (!hasGeneral && isManagerOrAbove) {
+    try {
+      const newGeneral = await createChat({
+        name: "Company Announcement & General Chat",
+        type: "general",
+        members: [] // Implicitly for everyone
+      });
+      chatsList.push(newGeneral);
+    } catch(err) {
+      console.error("Failed to auto-provision general chat:", err);
+    }
+  }
+
+  return chatsList;
 }
 
 export async function createChat(chatData) {
@@ -700,15 +747,78 @@ export async function sendMessage(chatId, senderId, senderName, content, mediaUr
     mediaUrl,
     timestamp: new Date().toISOString()
   };
+  
+  let newMsg;
   if (isMockMode) {
-    const newMsg = { id: generateUUID(), ...payload };
+    newMsg = { id: generateUUID(), ...payload };
     mockDb.messages.push(newMsg);
     saveMockDb();
-    return newMsg;
+  } else {
+    const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const docRef = await addDoc(collection(db, 'messages'), payload);
+    newMsg = { id: docRef.id, ...payload };
   }
-  const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const docRef = await addDoc(collection(db, 'messages'), payload);
-  return { id: docRef.id, ...payload };
+
+  // Generate notifications for other members of the chat
+  try {
+    const chats = await getChats();
+    const chat = chats.find(c => c.id === chatId);
+    const users = await getUsers();
+
+    if (chat) {
+      let targetUserIds = [];
+      if (chat.type === 'general') {
+        // Notify all users except the sender
+        targetUserIds = users.map(u => u.id).filter(id => id !== senderId);
+      } else {
+        // Notify other members of the chat
+        targetUserIds = (chat.members || []).filter(id => id !== senderId);
+      }
+
+      const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+      for (const targetId of targetUserIds) {
+        const targetUser = users.find(u => u.id === targetId);
+        if (!targetUser) continue;
+
+        // Check if user has muted this chat
+        const mutedChats = targetUser.mutedChats || [];
+        const isMuted = mutedChats.includes(chatId);
+
+        // Check if mentioned in message (case-insensitive)
+        const lowerContent = content.toLowerCase();
+        const cleanName = targetUser.name.toLowerCase().replace(/\s+/g, '');
+        const isMentioned = lowerContent.includes(`@${cleanName}`) || lowerContent.includes('@all');
+
+        // Send notification only if NOT muted OR if explicitly mentioned
+        if (!isMuted || isMentioned) {
+          const notifPayload = {
+            userId: targetId,
+            title: chat.type === 'general' ? `Group: #${chat.name}` : `Message from ${senderName}`,
+            message: `${senderName}: ${content.substring(0, 80)}`,
+            type: "chat",
+            chatId: chatId,
+            read: false,
+            createdAt: new Date().toISOString()
+          };
+
+          if (isMockMode) {
+            mockDb.notifications.push({ id: generateUUID(), ...notifPayload });
+          } else {
+            await addDoc(collection(db, 'notifications'), notifPayload);
+          }
+        }
+      }
+
+      if (isMockMode) {
+        saveMockDb();
+      }
+    }
+  } catch (err) {
+    console.error("Failed to generate chat notifications:", err);
+  }
+
+  return newMsg;
 }
 
 // ----------------------------------------------------

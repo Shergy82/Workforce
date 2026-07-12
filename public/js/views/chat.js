@@ -22,8 +22,8 @@ async function renderChatInterface(container, user) {
       getUsers()
     ]);
 
-    // Filter chats user is in
-    const myChats = chats.filter(c => c.members.includes(user.id));
+    // Filter chats user is in OR general channels
+    const myChats = chats.filter(c => c.members.includes(user.id) || c.type === 'general');
     
     // Direct chat list (exclude self)
     const directUsers = users.filter(u => u.id !== user.id);
@@ -61,11 +61,14 @@ async function renderChatInterface(container, user) {
 
         <!-- Chat messages view -->
         <div class="chat-area">
-          <div id="chat-header" style="padding:10px 14px; border-bottom:1px solid hsl(var(--border)); font-weight:600; display:flex; align-items:center; gap:8px; min-height:48px;">
+          <div id="chat-header" style="padding:10px 14px; border-bottom:1px solid hsl(var(--border)); font-weight:600; display:flex; align-items:center; gap:8px; min-height:48px; box-sizing: border-box;">
             <button id="btn-back-chat" style="padding: 6px 10px; font-size: 0.85rem; display: none; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer; color: hsl(var(--primary)); font-weight: 700; flex-shrink: 0;"><i class="fa-solid fa-chevron-left"></i> Back</button>
             <div id="chat-header-title" style="display:flex; align-items:center; gap:8px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.95rem;">
               Select a channel or worker to start messaging
             </div>
+            <button id="btn-mute-chat" style="padding: 6px 10px; font-size: 0.85rem; border: none; background: transparent; cursor: pointer; display: none; align-items: center; justify-content: center; flex-shrink: 0;" title="Toggle Mute">
+              <i class="fa-solid fa-bell"></i>
+            </button>
           </div>
           <div class="chat-messages" id="chat-feed">
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:hsl(var(--text-muted));">
@@ -144,7 +147,17 @@ function setupChatEvents(user, chats, users) {
 
       // Activate chat input composer
       document.getElementById('chat-composer-block').style.display = 'flex';
-      
+
+      // Update mute button state for this active chat
+      const muteBtn = document.getElementById('btn-mute-chat');
+      if (muteBtn) {
+        muteBtn.style.display = 'flex';
+        const isMuted = (user.mutedChats || []).includes(chatId);
+        muteBtn.innerHTML = `<i class="fa-solid ${isMuted ? 'fa-bell-slash' : 'fa-bell'}"></i>`;
+        muteBtn.style.color = isMuted ? 'hsl(var(--danger))' : 'hsl(var(--text-muted))';
+        muteBtn.title = isMuted ? 'Unmute notifications' : 'Mute notifications';
+      }
+
       activeChatId = chatId;
       await startChatListening(chatId, user);
     });
@@ -182,6 +195,36 @@ function setupChatEvents(user, chats, users) {
       activeChatId = null;
       if (chatInterval) clearInterval(chatInterval);
       if (firestoreUnsubscribe) firestoreUnsubscribe();
+      
+      const muteBtn = document.getElementById('btn-mute-chat');
+      if (muteBtn) muteBtn.style.display = 'none';
+    });
+  }
+
+  // Mute button handler
+  const muteBtn = document.getElementById('btn-mute-chat');
+  if (muteBtn) {
+    muteBtn.addEventListener('click', async () => {
+      if (!activeChatId) return;
+      const { updateUser } = await import('../db.js');
+      const mutedChats = user.mutedChats || [];
+      
+      let updatedMuted;
+      if (mutedChats.includes(activeChatId)) {
+        updatedMuted = mutedChats.filter(id => id !== activeChatId);
+        showToast("Chat unmuted. You will receive notifications.", "success");
+      } else {
+        updatedMuted = [...mutedChats, activeChatId];
+        showToast("Chat muted. You will only be notified when mentioned.", "warning");
+      }
+      
+      user.mutedChats = updatedMuted;
+      const isMuted = updatedMuted.includes(activeChatId);
+      muteBtn.innerHTML = `<i class="fa-solid ${isMuted ? 'fa-bell-slash' : 'fa-bell'}"></i>`;
+      muteBtn.style.color = isMuted ? 'hsl(var(--danger))' : 'hsl(var(--text-muted))';
+      muteBtn.title = isMuted ? 'Unmute notifications' : 'Mute notifications';
+
+      await updateUser(user.id, { mutedChats: updatedMuted });
     });
   }
 }
@@ -210,8 +253,8 @@ async function startChatListening(chatId, user) {
       const isMe = m.senderId === user.id;
       return `
         <div class="chat-message ${isMe ? 'outgoing' : 'incoming'}">
-          ${!isMe ? `<span style="font-size:0.75rem; font-weight:700; margin-bottom:2px;">${m.senderName}</span>` : ''}
-          <p>${m.content}</p>
+          ${!isMe ? `<span style="font-size:0.75rem; font-weight:700; margin-bottom:2px; color:hsl(var(--primary));">${m.senderName}</span>` : ''}
+          <p style="margin:0; word-break: break-word; line-height: 1.4;">${m.content}</p>
           <span class="chat-meta">${formatTime(m.timestamp)}</span>
         </div>
       `;
@@ -230,13 +273,21 @@ async function startChatListening(chatId, user) {
     await fetchAndRender();
     chatInterval = setInterval(fetchAndRender, 1000);
   } else {
-    // Realtime Firestore listener
-    const { collection, query, where, orderBy, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-    const q = query(collection(db, 'messages'), where('chatId', '==', chatId), orderBy('timestamp', 'desc'));
+    // Realtime Firestore listener (sorted client-side in memory to avoid index requirements)
+    const { collection, query, where, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const q = query(collection(db, 'messages'), where('chatId', '==', chatId));
     
     firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      messages.reverse();
+      const messages = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let ts = 0;
+        if (data.timestamp) {
+          ts = new Date(data.timestamp).getTime();
+        }
+        return { id: doc.id, ...data, ts };
+      });
+      // Sort in memory ascending
+      messages.sort((a, b) => a.ts - b.ts);
       renderFeed(messages);
     }, (err) => {
       console.error("Chat snapshot error:", err);
