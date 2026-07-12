@@ -159,6 +159,38 @@ main.main-content {
   display: flex;
   flex-direction: column;
   padding-bottom: 80px; /* Space for mobile navigation fallback */
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+/* =====================================================
+   MOBILE RESPONSIVE LAYOUT (max-width: 768px)
+   ===================================================== */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  aside.sidebar {
+    display: none !important;
+  }
+
+  main.main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    overflow-x: hidden;
+  }
+
+  .page-container {
+    padding: 12px !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  nav.bottom-nav {
+    display: flex;
+  }
 }
 
 header.top-header {

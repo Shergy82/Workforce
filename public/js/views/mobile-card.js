@@ -178,7 +178,7 @@ async function renderJobCardDetail(container, user, shiftId) {
     }
 
     container.innerHTML = `
-      <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+      <div style="width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden;">
         
         <!-- Back Navigation -->
         <div>
@@ -248,12 +248,12 @@ async function renderJobCardDetail(container, user, shiftId) {
           <h4 style="font-weight: 700; font-size: 0.9rem; margin-bottom: 10px;"><i class="fa-solid fa-folder-open"></i> Site Drawings & RAMS</h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
             ${site.files && site.files.length > 0 ? site.files.map(f => `
-              <a href="${f.url}" target="_blank" download="${f.name}" style="padding: 8px 12px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2); text-decoration: none; color: inherit; width: 100%; box-sizing: border-box; transition: var(--transition);" onmouseover="this.style.backgroundColor='hsl(var(--bg-primary)/0.4)'" onmouseout="this.style.backgroundColor='hsl(var(--bg-primary)/0.2)'">
-                <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
-                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf text-red-500' : 'fa-file-lines'} fa-lg" style="flex-shrink: 0;"></i>
-                  <span style="font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1;">${f.name}</span>
+              <a href="${f.url}" target="_blank" download="${f.name}" style="padding: 8px 10px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2); text-decoration: none; color: inherit; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden;">
+                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf' : 'fa-file-lines'} fa-sm" style="flex-shrink: 0; color: hsl(var(--primary));"></i>
+                  <span style="font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">${f.name}</span>
                 </div>
-                <i class="fa-solid fa-cloud-arrow-down" style="color: hsl(var(--text-muted)); margin-left: 8px; flex-shrink: 0;"></i>
+                <i class="fa-solid fa-cloud-arrow-down" style="color: hsl(var(--text-muted)); margin-left: 8px; flex-shrink: 0; font-size: 0.85rem;"></i>
               </a>
             `).join('') : '<p style="color: hsl(var(--text-muted)); font-size: 0.8rem; font-style: italic; text-align: center;">No site documents loaded.</p>'}
           </div>
