@@ -126,7 +126,7 @@ export async function registerAdmin(name, email, password) {
   return currentUserProfile;
 }
 
-export async function signUpUser(name, email, password, emergencyContact = '', qualifications = '') {
+export async function signUpUser(name, email, password, phone = '', emergencyContact = '', qualifications = '') {
   if (isMockMode) {
     const existing = mockDb.users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (existing) throw new Error("A user with this email already exists.");
@@ -135,6 +135,7 @@ export async function signUpUser(name, email, password, emergencyContact = '', q
       id: 'op-' + Math.random().toString(36).substr(2, 9),
       email,
       name,
+      phone,
       role: 'operative',
       status: 'active',
       onboarded: false,
@@ -168,6 +169,7 @@ export async function signUpUser(name, email, password, emergencyContact = '', q
   const userData = {
     email,
     name,
+    phone,
     role: isFirstUser ? 'owner' : 'operative',
     status: 'active',
     onboarded: isFirstUser, // Auto-onboard the owner/admin

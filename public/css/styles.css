@@ -638,6 +638,36 @@ nav.bottom-nav button.nav-btn.active {
   gap: 12px;
 }
 
+/* Responsive Chat for Mobile Viewports */
+@media (max-width: 768px) {
+  .chat-container {
+    height: calc(100vh - 120px) !important;
+    flex-direction: column;
+    border: none;
+    border-radius: 0;
+  }
+  
+  .chat-container.chat-active .chat-sidebar {
+    display: none !important;
+  }
+  .chat-container:not(.chat-active) .chat-area {
+    display: none !important;
+  }
+
+  .chat-sidebar {
+    width: 100% !important;
+    border-right: none;
+  }
+  
+  .chat-area {
+    width: 100% !important;
+  }
+  
+  #btn-back-chat {
+    display: flex !important;
+  }
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;

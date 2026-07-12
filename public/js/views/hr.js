@@ -146,21 +146,7 @@ function renderOperativeHr(container, user, requests) {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-title"><i class="fa-solid fa-clipboard-check"></i> Onboarding Checklist</div>
-        <div style="margin-bottom:14px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
-            <span style="font-size:0.85rem; color:hsl(var(--text-muted));">Progress</span>
-            <span style="font-weight:700; color:hsl(var(--primary));">${onboardPct}%</span>
-          </div>
-          <div style="background:hsl(var(--border)); border-radius:4px; height:8px; overflow:hidden;">
-            <div style="background:hsl(var(--primary)); height:100%; width:${onboardPct}%; transition:width 0.4s ease; border-radius:4px;"></div>
-          </div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px;" id="onboarding-tasks-checklist">
-          ${checklist.map(item => renderChecklistItem(item)).join('')}
-        </div>
-      </div>
+
 
       <div class="card" style="grid-column:1/-1;">
         <div class="card-title">

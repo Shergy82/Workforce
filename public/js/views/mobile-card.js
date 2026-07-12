@@ -361,6 +361,7 @@ function setupJobCardEvents(container, shift, site, currentUser) {
   if (formComplete) {
     formComplete.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const targetSiteId = shift.siteId || shift.projectId;
       const notes = document.getElementById('completion-notes').value;
 
       if (!notes.trim()) {

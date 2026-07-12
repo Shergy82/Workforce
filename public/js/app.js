@@ -432,13 +432,14 @@ function setupGlobalListeners() {
     e.preventDefault();
     const name = document.getElementById('signup-name').value;
     const email = document.getElementById('signup-email').value;
+    const phone = document.getElementById('signup-phone').value;
     const pass = document.getElementById('signup-password').value;
     const emergency = document.getElementById('signup-emergency').value;
     const quals = document.getElementById('signup-quals').value;
 
     errorBox.style.display = 'none';
     try {
-      const user = await signUpUser(name, email, pass, emergency, quals);
+      const user = await signUpUser(name, email, pass, phone, emergency, quals);
       showToast("Account registered! Welcome to the hub.", "success");
       if (isMockMode) {
         await handleAuthStateChange(user);

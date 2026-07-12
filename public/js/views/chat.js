@@ -61,8 +61,11 @@ async function renderChatInterface(container, user) {
 
         <!-- Chat messages view -->
         <div class="chat-area">
-          <div id="chat-header" style="padding:14px 20px; border-bottom:1px solid hsl(var(--border)); font-weight:600; display:flex; align-items:center; gap:8px;">
-            Select a channel or worker to start messaging
+          <div id="chat-header" style="padding:10px 14px; border-bottom:1px solid hsl(var(--border)); font-weight:600; display:flex; align-items:center; gap:8px; min-height:48px;">
+            <button id="btn-back-chat" style="padding: 6px 10px; font-size: 0.85rem; display: none; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer; color: hsl(var(--primary)); font-weight: 700; flex-shrink: 0;"><i class="fa-solid fa-chevron-left"></i> Back</button>
+            <div id="chat-header-title" style="display:flex; align-items:center; gap:8px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.95rem;">
+              Select a channel or worker to start messaging
+            </div>
           </div>
           <div class="chat-messages" id="chat-feed">
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:hsl(var(--text-muted));">
@@ -95,8 +98,9 @@ function setupChatEvents(user, chats, users) {
       channelsList.querySelectorAll('.chat-channel-item').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
-      const chatType = btn.getAttribute('data-type');
-      let chatId = btn.getAttribute('data-chat-id');
+      // Add active state to container for mobile view
+      const chatContainer = document.querySelector('.chat-container');
+      if (chatContainer) chatContainer.classList.add('chat-active');
 
       if (chatType === 'direct') {
         const targetUserId = btn.getAttribute('data-target-user-id');
@@ -122,14 +126,14 @@ function setupChatEvents(user, chats, users) {
           chatId = newChat.id;
         }
         
-        document.getElementById('chat-header').innerHTML = `
+        document.getElementById('chat-header-title').innerHTML = `
           <i class="fa-solid fa-circle-user" style="color:hsl(var(--primary));"></i>
           <span>${targetUser.name}</span>
-          <span style="font-size:0.75rem; color:hsl(var(--text-muted)); margin-left:4px; font-weight:400;">(Direct Message)</span>
+          <span style="font-size:0.75rem; color:hsl(var(--text-muted)); margin-left:4px; font-weight:400;">(DM)</span>
         `;
       } else {
         const chatObj = chats.find(c => c.id === chatId);
-        document.getElementById('chat-header').innerHTML = `
+        document.getElementById('chat-header-title').innerHTML = `
           <i class="fa-solid fa-hashtag" style="color:hsl(var(--primary));"></i>
           <span>${chatObj.name}</span>
         `;
@@ -166,6 +170,17 @@ function setupChatEvents(user, chats, users) {
   msgInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') executeSend();
   });
+
+  const backBtn = document.getElementById('btn-back-chat');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      const chatContainer = document.querySelector('.chat-container');
+      if (chatContainer) chatContainer.classList.remove('chat-active');
+      activeChatId = null;
+      if (chatInterval) clearInterval(chatInterval);
+      if (firestoreUnsubscribe) firestoreUnsubscribe();
+    });
+  }
 }
 
 async function startChatListening(chatId, user) {
