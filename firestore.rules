@@ -122,8 +122,16 @@ service cloud.firestore {
 
     match /documents/{documentId} {
       allow read: if isAuthenticated();
-      allow write: if isManager();
+      allow create, delete: if isManager();
+      // Allow any authenticated user to update views/signatures (for reading & signing)
+      allow update: if isAuthenticated() && (
+        isManager() ||
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signatures', 'views'])
+        )
+      );
     }
+
 
     match /chats/{chatId} {
       allow read: if isAuthenticated() && (isManager() || request.auth.uid in resource.data.members || resource.data.type == 'general');

@@ -1,7 +1,9 @@
-import { getCurrentUser } from '../auth.js';
-import { getChats, createChat, getMessages, sendMessage, getUsers } from '../db.js';
+import { getCurrentUser, isManager } from '../auth.js';
+import { getChats, createChat, getMessages, sendMessage, getUsers, deleteChat, markChatNotificationsRead } from '../db.js';
 import { formatTime, getLoadingSpinner } from '../utils.js';
 import { showToast } from '../components/toast.js';
+import { showModal, hideModal } from '../components/modal.js';
+
 
 let activeChatId = null;
 let chatInterval = null;
@@ -41,22 +43,35 @@ async function renderChatInterface(container, user) {
             <!-- Project Channels Group -->
             <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:hsl(var(--text-muted)); padding:10px 12px 4px 12px; letter-spacing:0.05em;">Group Channels</p>
             ${myChats.map(c => `
-              <button class="chat-channel-item" data-chat-id="${c.id}" data-type="channel">
-                <i class="fa-solid fa-hashtag" style="color:hsl(var(--primary));"></i>
-                <span style="font-weight: 600;">${c.name}</span>
-              </button>
+              <div class="chat-sidebar-row" style="display:flex; align-items:center; gap:4px; padding:0 4px;">
+                <button class="chat-channel-item" data-chat-id="${c.id}" data-type="channel" style="flex:1; min-width:0;">
+                  <i class="fa-solid fa-hashtag" style="color:hsl(var(--primary));"></i>
+                  <span style="font-weight: 600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name}</span>
+                </button>
+                ${isManager() ? `
+                  <button class="btn-delete-chat" data-chat-id="${c.id}" data-chat-name="${c.name}" title="Delete channel"
+                    style="background:none; border:none; color:hsl(var(--danger)); cursor:pointer; padding:6px; border-radius:4px; flex-shrink:0; display:flex; align-items:center; opacity:0.6;"
+                    onmouseover="this.style.opacity='1';this.style.backgroundColor='rgba(239,68,68,0.1)'"
+                    onmouseout="this.style.opacity='0.6';this.style.backgroundColor='transparent'">
+                    <i class="fa-solid fa-trash-can" style="font-size:0.75rem;"></i>
+                  </button>
+                ` : ''}
+              </div>
             `).join('')}
 
             <!-- Direct Messages Group -->
             <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:hsl(var(--text-muted)); padding:14px 12px 4px 12px; letter-spacing:0.05em;">Direct Messages</p>
             ${directUsers.map(u => `
-              <button class="chat-channel-item" data-target-user-id="${u.id}" data-type="direct">
-                <i class="fa-solid fa-circle-user" style="color:hsl(var(--text-muted));"></i>
-                <span>${u.name}</span>
-              </button>
+              <div class="chat-sidebar-row" style="display:flex; align-items:center; gap:4px; padding:0 4px;">
+                <button class="chat-channel-item" data-target-user-id="${u.id}" data-type="direct" style="flex:1; min-width:0;">
+                  <i class="fa-solid fa-circle-user" style="color:hsl(var(--text-muted));"></i>
+                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${u.name}</span>
+                </button>
+              </div>
             `).join('')}
 
           </div>
+
         </div>
 
         <!-- Chat messages view -->
@@ -159,7 +174,40 @@ function setupChatEvents(user, chats, users) {
       }
 
       activeChatId = chatId;
+      // Mark chat notifications as read so badge clears
+      markChatNotificationsRead(user.id, chatId).catch(() => {});
       await startChatListening(chatId, user);
+    });
+  });
+
+  // Delete chat button handlers (managers only)
+  document.querySelectorAll('.btn-delete-chat').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const chatId = btn.getAttribute('data-chat-id');
+      const chatName = btn.getAttribute('data-chat-name');
+      showModal({
+        title: `Delete "${chatName}"?`,
+        bodyHTML: `
+          <div style="text-align:center; padding:8px 0;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:hsl(var(--danger)); display:block; margin-bottom:12px;"></i>
+            <p style="font-weight:700;">This cannot be undone.</p>
+            <p style="color:hsl(var(--text-muted)); font-size:0.9rem; margin-top:8px;">All messages in this channel will be permanently deleted.</p>
+          </div>
+        `,
+        confirmText: 'Yes, Delete',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          try {
+            await deleteChat(chatId);
+            showToast(`"${chatName}" deleted.`, 'success');
+            hideModal();
+            // Reload chat view
+            const container = document.getElementById('view-mount');
+            if (container) { const { init } = await import('./chat.js'); init(container); }
+          } catch (err) { showToast(err.message, 'error'); }
+        }
+      });
     });
   });
 

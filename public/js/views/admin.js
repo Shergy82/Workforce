@@ -182,13 +182,11 @@ async function renderWhiteboard(container, user) {
                       <div style="font-weight: 700; color: hsl(var(--text-main)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${o.name}</div>
                       <div style="font-size: 0.68rem; color: hsl(var(--text-muted)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${o.trade || 'Builder'}</div>
                     </div>
-                    <button class="btn-delete-eng-sidebar" data-id="${o.id}" data-name="${o.name}" style="background:none; border:none; color:hsl(var(--danger)); cursor:pointer; padding:4px; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; transition:var(--transition);" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
-                      <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
-                    </button>
                   </div>
                 `).join('')}
               </div>
             </div>
+
 
             <!-- Date Grid Box Columns (Full spacious width) -->
             <div style="flex: 1; min-width: 0; width: 100%;">

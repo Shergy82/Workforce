@@ -821,6 +821,42 @@ export async function sendMessage(chatId, senderId, senderName, content, mediaUr
   return newMsg;
 }
 
+export async function deleteChat(chatId) {
+  if (isMockMode) {
+    const idx = mockDb.chats.findIndex(c => c.id === chatId);
+    if (idx !== -1) mockDb.chats.splice(idx, 1);
+    mockDb.messages = (mockDb.messages || []).filter(m => m.chatId !== chatId);
+    saveMockDb();
+    return true;
+  }
+  const { doc, deleteDoc, collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  // Delete the chat doc
+  await deleteDoc(doc(db, 'chats', chatId));
+  // Delete associated messages
+  const msgQ = query(collection(db, 'messages'), where('chatId', '==', chatId));
+  const msgSnap = await getDocs(msgQ);
+  for (const msgDoc of msgSnap.docs) {
+    await deleteDoc(msgDoc.ref);
+  }
+  return true;
+}
+
+export async function markChatNotificationsRead(userId, chatId) {
+  if (isMockMode) {
+    (mockDb.notifications || []).forEach(n => {
+      if (n.userId === userId && n.type === 'chat' && n.chatId === chatId) n.read = true;
+    });
+    saveMockDb();
+    return;
+  }
+  const { collection, query, where, getDocs, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  const q = query(collection(db, 'notifications'), where('userId', '==', userId), where('type', '==', 'chat'), where('chatId', '==', chatId), where('read', '==', false));
+  const snap = await getDocs(q);
+  for (const d of snap.docs) {
+    await updateDoc(d.ref, { read: true });
+  }
+}
+
 // ----------------------------------------------------
 // NOTIFICATIONS
 // ----------------------------------------------------

@@ -184,10 +184,12 @@ function renderSidebarMenu(role) {
       { name: 'forms', label: 'Forms', hash: '#/forms', icon: 'fa-clipboard-list' },
       { name: 'docs', label: 'Documents', hash: '#/docs', icon: 'fa-file-lines' },
       { name: 'chat', label: 'Chat', hash: '#/chat', icon: 'fa-comments' },
+      { name: 'help', label: 'Help', hash: '#/help', icon: 'fa-circle-question' },
     ];
   } else {
     items = [
-      { name: 'mobile-jobs', label: 'My Shifts', hash: '#/mobile-jobs', icon: 'fa-calendar-check' }
+      { name: 'mobile-jobs', label: 'My Shifts', hash: '#/mobile-jobs', icon: 'fa-calendar-check' },
+      { name: 'help', label: 'Help', hash: '#/help', icon: 'fa-circle-question' },
     ];
   }
 
@@ -221,6 +223,7 @@ function renderBottomNav(role) {
       { label: 'Forms', hash: '#/forms', icon: 'fa-clipboard-list' },
       { label: 'Docs', hash: '#/docs', icon: 'fa-file-lines' },
       { label: 'Chat', hash: '#/chat', icon: 'fa-comments' },
+      { label: 'Help', hash: '#/help', icon: 'fa-circle-question' },
     ];
   } else {
     primaryItems = [
@@ -232,6 +235,7 @@ function renderBottomNav(role) {
     moreItems = [
       { label: 'HR', hash: '#/hr', icon: 'fa-user-tie' },
       { label: 'Tasks', hash: '#/tasks', icon: 'fa-list-check' },
+      { label: 'Help', hash: '#/help', icon: 'fa-circle-question' },
     ];
   }
 
@@ -388,8 +392,13 @@ async function routeView() {
   let formattedTitle = route.charAt(0).toUpperCase() + route.slice(1).replace('-', ' ');
   if (route === 'planner') {
     formattedTitle = 'Planners';
+  } else if (route === 'admin') {
+    formattedTitle = 'Easy Planner';
+  } else if (route === 'help') {
+    formattedTitle = 'Help & User Guide';
   }
   viewTitle.textContent = formattedTitle;
+
 
   // Render view
   mount.innerHTML = `<div style="display:flex; justify-content:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:hsl(var(--primary));"></i></div>`;

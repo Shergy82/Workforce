@@ -158,13 +158,18 @@ function showCreateTaskModal(projects, users) {
         </div>
         <div class="form-group">
           <label class="form-label" for="task-project">Related Project Site</label>
-          <select class="form-input" id="task-project" required>
+          <select class="form-input" id="task-project">
+            <option value="">-- Select a Site --</option>
             ${projectList.length > 0 
-              ? projectList.map(p => `<option value="${p.id}">${p.name || p.scheme || p.address || 'Unnamed Site'}</option>`).join('')
-              : '<option value="">No Active Projects Available</option>'
+              ? projectList.map(p => {
+                  const label = (p.name && p.name !== 'undefined') ? p.name : (p.scheme || p.address || 'Unnamed Site');
+                  return `<option value="${p.id}">${label}</option>`;
+                }).join('')
+              : ''
             }
           </select>
         </div>
+
         <div class="form-group">
           <label class="form-label" for="task-user">Assign to Employee</label>
           <select class="form-input" id="task-user" required>
