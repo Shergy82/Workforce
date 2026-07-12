@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Workforce Platform</title>
-  <link rel="stylesheet" href="/css/styles.css?v=25">
+  <link rel="stylesheet" href="/css/styles.css?v=28">
   <link rel="manifest" href="/manifest.json">
   <!-- Google Fonts - Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -230,13 +230,13 @@
   </div>
 
   <!-- Import Firebase Client SDK libraries (Modular CDN) -->
-  <script type="module" src="/js/app.js?v=27"></script>
+  <script type="module" src="/js/app.js?v=28"></script>
 
   <script>
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js?v=27')
+        navigator.serviceWorker.register('/sw.js?v=28')
           .then(reg => console.log('Service Worker registered successfully.'))
           .catch(err => console.log('Service worker registration failed:', err));
       });

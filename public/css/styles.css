@@ -272,12 +272,14 @@ nav.bottom-nav {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background-color: hsl(var(--bg-card));
   border-top: 1px solid hsl(var(--border));
   z-index: 100;
   justify-content: space-around;
   align-items: center;
+  box-sizing: border-box;
 }
 
 nav.bottom-nav button.nav-btn {
