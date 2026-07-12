@@ -304,30 +304,42 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
   if (statusBtn) {
     statusBtn.addEventListener('click', async () => {
       const nextStatus = site.status === 'active' ? 'inactive' : 'active';
-      if (confirm(`Are you sure you want to mark this site as ${nextStatus.toUpperCase()}?`)) {
-        try {
-          await updateSite(site.id, { status: nextStatus });
-          showToast(`Site status changed to ${nextStatus}.`, "success");
-          renderSiteDetails(container, user, site.id);
-        } catch (err) {
-          showToast(err.message, "error");
+      showModal({
+        title: `Mark Site as ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}`,
+        bodyHTML: `<p>Are you sure you want to mark <strong>${site.address}</strong> as <strong>${nextStatus.toUpperCase()}</strong>?</p>`,
+        confirmText: `Yes, Mark ${nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}`,
+        onConfirm: async () => {
+          try {
+            await updateSite(site.id, { status: nextStatus });
+            showToast(`Site status changed to ${nextStatus}.`, "success");
+            hideModal();
+            renderSiteDetails(container, user, site.id);
+          } catch (err) {
+            showToast(err.message, "error");
+          }
         }
-      }
+      });
     });
   }
 
   const deleteSiteBtn = document.getElementById('btn-delete-site');
   if (deleteSiteBtn) {
     deleteSiteBtn.addEventListener('click', async () => {
-      if (confirm(`Are you sure you want to permanently delete this site: "${site.address}"? This will remove the site from the directory. Historical shifts/jobs will not be deleted from the database.`)) {
-        try {
-          await deleteSite(site.id);
-          showToast("Site address deleted successfully.", "success");
-          location.hash = '#/sites';
-        } catch (err) {
-          showToast(err.message, "error");
+      showModal({
+        title: 'Delete Site',
+        bodyHTML: `<p>Are you sure you want to permanently delete <strong>${site.address}</strong>?<br><br><small style="color:hsl(var(--text-muted));">Historical shifts will not be deleted.</small></p>`,
+        confirmText: 'Yes, Delete Site',
+        onConfirm: async () => {
+          try {
+            await deleteSite(site.id);
+            showToast("Site address deleted successfully.", "success");
+            hideModal();
+            location.hash = '#/sites';
+          } catch (err) {
+            showToast(err.message, "error");
+          }
         }
-      }
+      });
     });
   }
 

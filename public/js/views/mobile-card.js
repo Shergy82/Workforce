@@ -4,6 +4,27 @@ import { formatDate, getLoadingSpinner } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
 
+// Download a file from a URL as a blob to bypass cross-origin restrictions
+async function downloadFile(url, name) {
+  try {
+    showToast('Preparing download...', 'info');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch file');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+  } catch (err) {
+    // Fallback: open in new tab if blob fetch fails (e.g. CORS)
+    window.open(url, '_blank');
+  }
+}
+
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
@@ -244,17 +265,20 @@ async function renderJobCardDetail(container, user, shiftId) {
         </div>
 
         <!-- Files and Drawings Central Card -->
-        <div class="card" style="margin-bottom: 0; padding: 16px;">
+        <div class="card" style="margin-bottom: 0; padding: 16px; overflow: hidden;">
           <h4 style="font-weight: 700; font-size: 0.9rem; margin-bottom: 10px;"><i class="fa-solid fa-folder-open"></i> Site Drawings & RAMS</h4>
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            ${site.files && site.files.length > 0 ? site.files.map(f => `
-              <a href="${f.url}" target="_blank" download="${f.name}" style="padding: 8px 10px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2); text-decoration: none; color: inherit; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
-                <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden;">
-                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf' : 'fa-file-lines'} fa-sm" style="flex-shrink: 0; color: hsl(var(--primary));"></i>
-                  <span style="font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;">${f.name}</span>
-                </div>
-                <i class="fa-solid fa-cloud-arrow-down" style="color: hsl(var(--text-muted)); margin-left: 8px; flex-shrink: 0; font-size: 0.85rem;"></i>
-              </a>
+            ${site.files && site.files.length > 0 ? site.files.map((f, idx) => `
+              <div style="display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); background-color: hsl(var(--bg-primary)/0.2); width: 100%; box-sizing: border-box; overflow: hidden;">
+                <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf' : 'fa-file-lines'}" style="flex-shrink: 0; color: hsl(var(--primary));"></i>
+                <span style="font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;">${f.name}</span>
+                <button class="btn-file-view" data-url="${f.url}" data-name="${f.name}" style="flex-shrink: 0; border: none; background: transparent; cursor: pointer; color: hsl(var(--primary)); padding: 4px 6px; font-size: 0.8rem;" title="Open">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="btn-file-download" data-url="${f.url}" data-name="${f.name}" style="flex-shrink: 0; border: none; background: transparent; cursor: pointer; color: hsl(var(--text-muted)); padding: 4px 6px; font-size: 0.8rem;" title="Download">
+                  <i class="fa-solid fa-cloud-arrow-down"></i>
+                </button>
+              </div>
             `).join('') : '<p style="color: hsl(var(--text-muted)); font-size: 0.8rem; font-style: italic; text-align: center;">No site documents loaded.</p>'}
           </div>
         </div>
@@ -275,6 +299,22 @@ async function renderJobCardDetail(container, user, shiftId) {
 }
 
 function setupJobCardEvents(container, shift, site, currentUser) {
+  // File View / Download buttons
+  container.querySelectorAll('.btn-file-view').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      window.open(url, '_blank');
+    });
+  });
+
+  container.querySelectorAll('.btn-file-download').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      const name = btn.getAttribute('data-name');
+      downloadFile(url, name);
+    });
+  });
+
   // 1. Confirm Attendance
   const confirmBtn = document.getElementById('btn-action-confirm');
   if (confirmBtn) {

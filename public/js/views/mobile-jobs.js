@@ -27,7 +27,7 @@ async function renderMobileJobList(container, user) {
     const historicalShifts = myShifts.filter(s => s.date < todayStr);
 
     container.innerHTML = `
-      <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+      <div style="width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden;">
         
         <!-- Welcome Operative Banner -->
         <div class="card" style="background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%); color: white; border: none; padding: 16px; margin-bottom: 0;">
@@ -82,7 +82,7 @@ async function renderMobileJobList(container, user) {
   } catch (err) {
     console.error("Error rendering mobile shifts:", err);
     container.innerHTML = `
-      <div style="max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+      <div style="width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; overflow-x: hidden;">
         <div class="card" style="background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%); color: white; border: none; padding: 16px; margin-bottom: 0;">
           <h4 style="font-weight: 700; margin-bottom: 4px;">Hello, ${user.name}</h4>
           <p style="font-size: 0.85rem; opacity: 0.9;"><i class="fa-solid fa-helmet-safety"></i> Roster: <strong>${user.trade || 'General Operative'}</strong></p>
