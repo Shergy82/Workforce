@@ -214,10 +214,11 @@ async function startChatListening(chatId, user) {
   } else {
     // Realtime Firestore listener
     const { collection, query, where, orderBy, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-    const q = query(collection(db, 'messages'), where('chatId', '==', chatId), orderBy('timestamp', 'asc'));
+    const q = query(collection(db, 'messages'), where('chatId', '==', chatId), orderBy('timestamp', 'desc'));
     
     firestoreUnsubscribe = onSnapshot(q, (snapshot) => {
       const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      messages.reverse();
       renderFeed(messages);
     }, (err) => {
       console.error("Chat snapshot error:", err);

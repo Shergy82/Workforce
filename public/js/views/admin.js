@@ -106,7 +106,7 @@ async function renderWhiteboard(container, user) {
             left: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
-            z-index: 99999 !important;
+            z-index: 150 !important;
             background-color: hsl(var(--bg-main)) !important;
             padding: 24px !important;
             overflow: auto !important;
@@ -123,6 +123,9 @@ async function renderWhiteboard(container, user) {
           body:has(.whiteboard-fullscreen-mode) main.main-content {
             margin-left: 0 !important;
             padding-bottom: 0 !important;
+          }
+          body:has(.whiteboard-fullscreen-mode) .admin-tabs-container {
+            display: none !important;
           }
         </style>
         
@@ -179,6 +182,9 @@ async function renderWhiteboard(container, user) {
                       <div style="font-weight: 700; color: hsl(var(--text-main)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${o.name}</div>
                       <div style="font-size: 0.68rem; color: hsl(var(--text-muted)); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${o.trade || 'Builder'}</div>
                     </div>
+                    <button class="btn-delete-eng-sidebar" data-id="${o.id}" data-name="${o.name}" style="background:none; border:none; color:hsl(var(--danger)); cursor:pointer; padding:4px; display:inline-flex; align-items:center; justify-content:center; border-radius:4px; transition:var(--transition);" onmouseover="this.style.backgroundColor='rgba(239, 68, 68, 0.1)'" onmouseout="this.style.backgroundColor='transparent'">
+                      <i class="fa-solid fa-trash-can" style="font-size: 0.75rem;"></i>
+                    </button>
                   </div>
                 `).join('')}
               </div>
@@ -932,6 +938,41 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
       init(container);
     });
   }
+
+  // 6b. Delete Engineer Sidebar Action
+  document.querySelectorAll('.btn-delete-eng-sidebar').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const uId = btn.getAttribute('data-id');
+      const uName = btn.getAttribute('data-name');
+      const currentUser = getCurrentUser();
+      if (uId === currentUser?.id) { showToast("You cannot delete your own account.", "error"); return; }
+      
+      showModal({
+        title: `Delete ${uName}?`,
+        bodyHTML: `
+          <div style="text-align:center; padding:8px 0;">
+            <i class="fa-solid fa-circle-exclamation" style="font-size:2.5rem; color:hsl(var(--danger)); display:block; margin-bottom:12px;"></i>
+            <p style="font-weight:700;">This cannot be undone.</p>
+            <p style="color:hsl(var(--text-muted)); font-size:0.9rem; margin-top:8px; line-height:1.6;">
+              <strong>${uName}</strong> will be permanently removed. Their shifts remain but they will lose system access.
+            </p>
+          </div>
+        `,
+        confirmText: 'Yes, Delete',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          try {
+            const { deleteUser } = await import('../db.js');
+            await deleteUser(uId);
+            showToast(`${uName} deleted.`, 'success');
+            hideModal();
+            init(container);
+          } catch (err) { showToast(err.message, 'error'); }
+        }
+      });
+    });
+  });
 
   // 6. Engineer Sidebar Search Filter
   const engSearch = document.getElementById('eng-sidebar-search');

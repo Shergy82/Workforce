@@ -88,7 +88,7 @@ async function renderPlannersDirectory(container, user) {
                 <strong>Relevant People:</strong> ${p.relevantPeopleNames.length > 0 ? p.relevantPeopleNames.join(', ') : 'None'}
               </div>
               <div style="font-size: 0.82rem; color: hsl(var(--text-muted));">
-                <strong>Sites Allocated:</strong> ${(p.siteIds || []).length} sites
+                <strong>Sites Allocated:</strong> ${(p.siteIds || []).filter(id => { const s = sites.find(x => x.id === id); return s && s.status === 'active'; }).length} sites
               </div>
             </div>
             

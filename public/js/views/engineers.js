@@ -1,5 +1,5 @@
 import { getCurrentUser, isManager } from '../auth.js';
-import { getUsers, createUser, updateUser } from '../db.js';
+import { getUsers, createUser, updateUser, deleteUser } from '../db.js';
 import { getLoadingSpinner } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { showModal, hideModal } from '../components/modal.js';
@@ -91,14 +91,17 @@ async function renderEngineersList(container, user) {
                   <td>
                     <span class="badge ${o.status === 'active' ? 'badge-success' : 'badge-danger'}">${o.status || 'active'}</span>
                   </td>
-                  ${isManager() ? `
+                   ${isManager() ? `
                     <td>
-                      <div style="display: flex; gap: 6px;">
+                      <div style="display: flex; gap: 6px; flex-wrap:wrap;">
                         <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" data-action="toggle-status" data-user-id="${o.id}">
                           ${o.status === 'suspended' ? 'Activate' : 'Suspend'}
                         </button>
                         <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" data-action="edit-details" data-user-id="${o.id}">
                           Edit
+                        </button>
+                        <button class="btn btn-danger" style="font-size: 0.75rem; padding: 4px 8px;" data-action="delete-user" data-user-id="${o.id}" data-user-name="${o.name}">
+                          <i class="fa-solid fa-trash"></i>
                         </button>
                       </div>
                     </td>
@@ -132,14 +135,17 @@ async function renderEngineersList(container, user) {
                   <td><span class="badge badge-info" style="background-color: hsl(var(--accent)/0.15); color: hsl(var(--accent));">${m.role}</span></td>
                   <td>${m.email}</td>
                   <td>${m.phone || 'N/A'}</td>
-                  ${isManager() ? `
+                   ${isManager() ? `
                     <td>
-                      <div style="display: flex; gap: 6px;">
+                      <div style="display: flex; gap: 6px; flex-wrap:wrap;">
                         <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" data-action="toggle-status" data-user-id="${m.id}">
                           ${m.status === 'suspended' ? 'Activate' : 'Suspend'}
                         </button>
                         <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 4px 8px;" data-action="edit-details" data-user-id="${m.id}">
                           Edit
+                        </button>
+                        <button class="btn btn-danger" style="font-size: 0.75rem; padding: 4px 8px;" data-action="delete-user" data-user-id="${m.id}" data-user-name="${m.name}">
+                          <i class="fa-solid fa-trash"></i>
                         </button>
                       </div>
                     </td>
@@ -193,12 +199,28 @@ function setupEngineerEvents(container, allUsers) {
         bodyHTML: `
           <form id="edit-engineer-form">
             <div class="form-group">
+              <label class="form-label" for="edit-eng-name">Full Name</label>
+              <input class="form-input" type="text" id="edit-eng-name" required value="${targetUser.name}">
+            </div>
+            <div class="form-group">
               <label class="form-label" for="edit-eng-phone">Phone Number</label>
-              <input class="form-input" type="tel" id="edit-eng-phone" required value="${targetUser.phone || ''}">
+              <input class="form-input" type="tel" id="edit-eng-phone" value="${targetUser.phone || ''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-eng-emergency">Emergency Contact</label>
+              <input class="form-input" type="text" id="edit-eng-emergency" value="${targetUser.emergencyContact || ''}" placeholder="Name: 07123456789">
             </div>
             <div class="form-group">
               <label class="form-label" for="edit-eng-trade">Trade / Craft</label>
-              <input class="form-input" type="text" id="edit-eng-trade" required value="${targetUser.trade || ''}" placeholder="e.g. Electrician, Carpenter, Welder">
+              <input class="form-input" type="text" id="edit-eng-trade" value="${targetUser.trade || ''}" placeholder="e.g. Electrician, Carpenter, Welder">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-eng-quals">Qualifications</label>
+              <input class="form-input" type="text" id="edit-eng-quals" value="${targetUser.qualifications || ''}" placeholder="e.g. CSCS, First Aid">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="edit-eng-cscs">CSCS Card Expiry</label>
+              <input class="form-input" type="date" id="edit-eng-cscs" value="${targetUser.cscsExpiry || ''}">
             </div>
             <div class="form-group">
               <label class="form-label" for="edit-eng-role">System Role / Permissions</label>
@@ -233,19 +255,55 @@ function setupEngineerEvents(container, allUsers) {
         `,
         confirmText: 'Save Changes',
         onConfirm: async (body) => {
+          const name = body.querySelector('#edit-eng-name').value;
           const phone = body.querySelector('#edit-eng-phone').value;
+          const emergencyContact = body.querySelector('#edit-eng-emergency').value;
           const trade = body.querySelector('#edit-eng-trade').value;
+          const qualifications = body.querySelector('#edit-eng-quals').value;
+          const cscsExpiry = body.querySelector('#edit-eng-cscs').value;
           const role = body.querySelector('#edit-eng-role').value;
           const color = body.querySelector('#edit-eng-color').value;
 
           try {
-            await updateUser(uId, { phone, trade, color, role });
+            await updateUser(uId, { name, phone, emergencyContact, trade, qualifications, cscsExpiry, color, role });
             showToast("User details updated.", "success");
             hideModal();
             init(container);
           } catch (err) {
             showToast(err.message, "error");
           }
+        }
+      });
+    });
+  });
+
+  // Delete user buttons
+  container.querySelectorAll('button[data-action="delete-user"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const uId = btn.getAttribute('data-user-id');
+      const uName = btn.getAttribute('data-user-name');
+      const currentUser = getCurrentUser();
+      if (uId === currentUser?.id) { showToast("You cannot delete your own account.", "error"); return; }
+      showModal({
+        title: `Delete ${uName}?`,
+        bodyHTML: `
+          <div style="text-align:center; padding:8px 0;">
+            <i class="fa-solid fa-circle-exclamation" style="font-size:2.5rem; color:hsl(var(--danger)); display:block; margin-bottom:12px;"></i>
+            <p style="font-weight:700;">This cannot be undone.</p>
+            <p style="color:hsl(var(--text-muted)); font-size:0.9rem; margin-top:8px; line-height:1.6;">
+              <strong>${uName}</strong> will be permanently removed. Their shifts remain but they will lose system access.
+            </p>
+          </div>
+        `,
+        confirmText: 'Yes, Delete',
+        cancelText: 'Cancel',
+        onConfirm: async () => {
+          try {
+            await deleteUser(uId);
+            showToast(`${uName} deleted.`, 'success');
+            hideModal();
+            init(container);
+          } catch (err) { showToast(err.message, 'error'); }
         }
       });
     });

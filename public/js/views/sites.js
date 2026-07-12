@@ -28,6 +28,8 @@ async function renderSitesList(container, user) {
       `;
     }
 
+    const schemes = [...new Set(sites.map(s => s.scheme || s.client || 'General').filter(Boolean))];
+
     container.innerHTML = `
       ${headerHTML}
       <div class="card" style="padding: 16px; margin-bottom: 20px;">
@@ -37,6 +39,10 @@ async function renderSitesList(container, user) {
             <option value="all">All Statuses</option>
             <option value="active" selected>Active</option>
             <option value="inactive">Inactive</option>
+          </select>
+          <select class="form-input" id="site-scheme-filter" style="max-width: 200px;">
+            <option value="all">All Schemes</option>
+            ${schemes.map(sch => `<option value="${sch}">${sch}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -103,6 +109,7 @@ function renderSitesGrid(sites) {
 function setupSiteListEvents(container, allSites, allUsers) {
   const search = document.getElementById('site-search');
   const statusFilter = document.getElementById('site-status-filter');
+  const schemeFilter = document.getElementById('site-scheme-filter');
   const gridMount = document.getElementById('sites-grid-mount');
 
   const managers = allUsers.filter(u => u.role === 'admin' || u.role === 'manager' || u.role === 'owner');
@@ -111,20 +118,23 @@ function setupSiteListEvents(container, allSites, allUsers) {
   function filterSites() {
     const q = search.value.toLowerCase().trim();
     const statusVal = statusFilter.value;
+    const schemeVal = schemeFilter ? schemeFilter.value : 'all';
 
     const filtered = allSites.filter(s => {
       const matchSearch = s.address.toLowerCase().includes(q) || 
                           (s.scheme || s.client || '').toLowerCase().includes(q) ||
                           (s.eNumber || '').toLowerCase().includes(q);
       const matchStatus = statusVal === 'all' || s.status === statusVal;
-      return matchSearch && matchStatus;
+      const matchScheme = schemeVal === 'all' || (s.scheme || s.client || 'General') === schemeVal;
+      return matchSearch && matchStatus && matchScheme;
     });
 
     gridMount.innerHTML = renderSitesGrid(filtered);
   }
 
-  search.addEventListener('input', filterSites);
-  statusFilter.addEventListener('change', filterSites);
+  if (search) search.addEventListener('input', filterSites);
+  if (statusFilter) statusFilter.addEventListener('change', filterSites);
+  if (schemeFilter) schemeFilter.addEventListener('change', filterSites);
 
   const newBtn = document.getElementById('btn-new-site');
   if (newBtn) {

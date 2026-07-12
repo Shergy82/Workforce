@@ -1,5 +1,5 @@
 import { getCurrentUser, isManager } from '../auth.js';
-import { getSites, updateSite, getShifts, getUsers } from '../db.js';
+import { getSites, updateSite, getShifts, getUsers, deleteSite } from '../db.js';
 import { formatDate, getLoadingSpinner, getLocalDateString } from '../utils.js';
 import { showToast } from '../components/toast.js';
 import { uploadFile } from '../storage.js';
@@ -70,8 +70,11 @@ async function renderSiteDetails(container, user, siteId) {
           </a>
           ${isManager() ? `
             <button class="btn btn-secondary" id="btn-edit-site-details"><i class="fa-solid fa-pen-to-square"></i> Edit Details</button>
-            <button class="btn btn-danger" id="btn-toggle-site-status" style="padding: 8px 16px;">
+            <button class="btn btn-secondary" id="btn-toggle-site-status" style="padding: 8px 16px;">
               Mark as ${site.status === 'active' ? 'Inactive' : 'Active'}
+            </button>
+            <button class="btn btn-danger" id="btn-delete-site" style="padding: 8px 16px;">
+              <i class="fa-solid fa-trash-can"></i> Delete Site
             </button>
           ` : ''}
         </div>
@@ -306,6 +309,21 @@ function setupSiteDetailEvents(container, site, user, allUsers) {
           await updateSite(site.id, { status: nextStatus });
           showToast(`Site status changed to ${nextStatus}.`, "success");
           renderSiteDetails(container, user, site.id);
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+    });
+  }
+
+  const deleteSiteBtn = document.getElementById('btn-delete-site');
+  if (deleteSiteBtn) {
+    deleteSiteBtn.addEventListener('click', async () => {
+      if (confirm(`Are you sure you want to permanently delete this site: "${site.address}"? This will remove the site from the directory. Historical shifts/jobs will not be deleted from the database.`)) {
+        try {
+          await deleteSite(site.id);
+          showToast("Site address deleted successfully.", "success");
+          location.hash = '#/sites';
         } catch (err) {
           showToast(err.message, "error");
         }

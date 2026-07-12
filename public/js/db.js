@@ -58,6 +58,21 @@ export async function updateUser(userId, updates) {
   return { id: userId, ...updates };
 }
 
+export async function deleteUser(userId) {
+  if (isMockMode) {
+    const idx = mockDb.users.findIndex(u => u.id === userId);
+    if (idx !== -1) {
+      mockDb.users.splice(idx, 1);
+      saveMockDb();
+      return true;
+    }
+    return false;
+  }
+  const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  await deleteDoc(doc(db, 'users', userId));
+  return true;
+}
+
 // ----------------------------------------------------
 // PROJECTS & SITES
 // ----------------------------------------------------
@@ -117,6 +132,23 @@ export async function updateSite(siteId, updates) {
   return { id: siteId, ...updates };
 }
 export const updateProject = updateSite;
+
+export async function deleteSite(siteId) {
+  if (isMockMode) {
+    const idx = mockDb.sites.findIndex(s => s.id === siteId);
+    if (idx !== -1) {
+      mockDb.sites.splice(idx, 1);
+      saveMockDb();
+      return true;
+    }
+    return false;
+  }
+  const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  await deleteDoc(doc(db, 'sites', siteId));
+  return true;
+}
+export const deleteProject = deleteSite;
+
 
 // ----------------------------------------------------
 // SHIFTS
@@ -573,9 +605,10 @@ export async function getMessages(chatId) {
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   }
   const { collection, getDocs, query, where, orderBy } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const q = query(collection(db, 'messages'), where('chatId', '==', chatId), orderBy('timestamp', 'asc'));
+  const q = query(collection(db, 'messages'), where('chatId', '==', chatId), orderBy('timestamp', 'desc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return messages.reverse();
 }
 
 export async function sendMessage(chatId, senderId, senderName, content, mediaUrl = '') {

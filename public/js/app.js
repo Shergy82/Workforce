@@ -560,6 +560,46 @@ function setupGlobalListeners() {
         return;
       }
 
+      // Helper function to show notifications modal
+      const showNotificationsListModal = async () => {
+        try {
+          const { getNotifications, markNotificationRead } = await import('./db.js');
+          const { showModal, hideModal } = await import('./components/modal.js');
+          const list = await getNotifications(user.id);
+          
+          const notifHTML = list.length === 0 
+            ? `<div style="text-align: center; padding: 24px; color: hsl(var(--text-muted)); font-style: italic;">No recent notifications.</div>`
+            : `<div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                ${list.slice(0, 10).map(n => `
+                  <div style="padding: 10px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)); background-color: ${n.read ? 'hsl(var(--bg-primary)/0.3)' : 'hsl(var(--primary)/0.03)'}; border-left: 3px solid ${n.read ? 'hsl(var(--border))' : 'hsl(var(--primary))'}; position: relative;">
+                    <div style="font-weight: 700; font-size: 0.85rem; color: hsl(var(--text-main));">${n.title}</div>
+                    <div style="font-size: 0.78rem; color: hsl(var(--text-muted)); margin-top: 2px;">${n.message}</div>
+                    <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${new Date(n.createdAt).toLocaleDateString()}</div>
+                  </div>
+                `).join('')}
+               </div>`;
+
+          showModal({
+            title: 'Recent Notifications',
+            bodyHTML: notifHTML,
+            confirmText: 'Mark All Read',
+            cancelText: 'Close',
+            onConfirm: async () => {
+              const unreadList = list.filter(n => !n.read);
+              if (unreadList.length > 0) {
+                for (const n of unreadList) {
+                  await markNotificationRead(n.id);
+                }
+                showToast("All notifications marked as read.", "success");
+              }
+              hideModal();
+            }
+          });
+        } catch (err) {
+          showToast("Error loading notifications: " + err.message, "error");
+        }
+      };
+
       // If they haven't granted permission yet, ask for it
       if (Notification.permission !== 'granted') {
         try {
@@ -573,6 +613,7 @@ function setupGlobalListeners() {
                 icon: "/manifest.json"
               });
             }
+            await showNotificationsListModal();
           } else if (permission === 'denied') {
             const { showModal } = await import('./components/modal.js');
             showModal({
@@ -594,42 +635,7 @@ function setupGlobalListeners() {
       }
 
       // If already granted, show the recent notifications modal!
-      try {
-        const { getNotifications, markNotificationRead } = await import('./db.js');
-        const { showModal, hideModal } = await import('./components/modal.js');
-        const list = await getNotifications(user.id);
-        
-        const notifHTML = list.length === 0 
-          ? `<div style="text-align: center; padding: 24px; color: hsl(var(--text-muted)); font-style: italic;">No recent notifications.</div>`
-          : `<div style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; padding-right: 4px;">
-              ${list.slice(0, 10).map(n => `
-                <div style="padding: 10px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)); background-color: ${n.read ? 'hsl(var(--bg-primary)/0.3)' : 'hsl(var(--primary)/0.03)'}; border-left: 3px solid ${n.read ? 'hsl(var(--border))' : 'hsl(var(--primary))'}; position: relative;">
-                  <div style="font-weight: 700; font-size: 0.85rem; color: hsl(var(--text-main));">${n.title}</div>
-                  <div style="font-size: 0.78rem; color: hsl(var(--text-muted)); margin-top: 2px;">${n.message}</div>
-                  <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${new Date(n.createdAt).toLocaleDateString()}</div>
-                </div>
-              `).join('')}
-             </div>`;
-
-        showModal({
-          title: 'Recent Notifications',
-          bodyHTML: notifHTML,
-          confirmText: 'Mark All Read',
-          cancelText: 'Close',
-          onConfirm: async () => {
-            const unreadList = list.filter(n => !n.read);
-            if (unreadList.length > 0) {
-              for (const n of unreadList) {
-                await markNotificationRead(n.id);
-              }
-              showToast("All notifications marked as read.", "success");
-            }
-            hideModal();
-          }
-        });
-      } catch (err) {
-        showToast("Error loading notifications: " + err.message, "error");
-      }
+      await showNotificationsListModal();
     });
   }
 
