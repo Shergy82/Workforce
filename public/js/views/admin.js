@@ -1044,14 +1044,7 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
           if (shift && shift.date !== targetDate) {
             await updateShift(shiftId, { date: targetDate });
             
-            if (shift.userId) {
-              await createNotification(
-                shift.userId,
-                "Job Rescheduled",
-                `Your job at ${shift.siteAddress} has been moved to ${formatDate(targetDate)}.`,
-                "shift"
-              );
-            }
+            // Notification handled by Cloud Function
             showToast("Job rescheduled successfully!", "success");
             init(container);
           }
@@ -1104,12 +1097,7 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
               status: 'pending' // reset status
             });
 
-            await createNotification(
-              engineer.id,
-              "New Job Assigned",
-              `You have been assigned to: ${shift.task} at ${shift.siteAddress} on ${formatDate(shift.date)}.`,
-              "shift"
-            );
+            // Notification handled by Cloud Function
 
             showToast(`Assigned ${engineer.name} to job successfully!`, "success");
             init(container);
@@ -1237,14 +1225,7 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
               status: userId ? 'pending' : 'pending' // reset status
             });
 
-            if (engineer) {
-              await createNotification(
-                engineer.id,
-                "New Job Assigned",
-                `You have been scheduled at ${job.siteAddress} on ${formatDate(job.date)}.`,
-                "shift"
-              );
-            }
+            // Notification handled by Cloud Function
             showToast("Worker assigned successfully.", "success");
             hideModal();
             init(container);
@@ -1292,14 +1273,7 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
         timestamps.cancelled = now;
 
         await updateShift(jobId, { status: 'cancelled', timestamps });
-        if (job.userId) {
-          await createNotification(
-            job.userId,
-            "Job Cancelled",
-            `Your shift at ${job.siteAddress} on ${formatDate(job.date)} has been cancelled.`,
-            "shift"
-          );
-        }
+        // Notification handled by Cloud Function
         showToast("Job has been cancelled.", "warning");
         init(container);
       }
@@ -1317,14 +1291,7 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
         timestamps
       });
 
-      if (job.userId) {
-        await createNotification(
-          job.userId,
-          "Job Completed",
-          `Your job at ${job.siteAddress} has been completed and closed.`,
-          "shift"
-        );
-      }
+      // Notification handled by Cloud Function
       showToast("Job marked completed successfully!", "success");
       init(container);
     }

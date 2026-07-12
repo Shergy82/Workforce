@@ -75,13 +75,13 @@ exports.onShiftWrite = functions.firestore
     const beforeData = change.before.exists ? change.before.data() : null;
     const afterData = change.after.exists ? change.after.data() : null;
 
-    // Shift Deleted
+    // 1. Shift Deleted
     if (beforeData && !afterData) {
       if (beforeData.userId) {
         await db.collection("notifications").add({
           userId: beforeData.userId,
           title: "Shift Deleted",
-          message: `Your scheduled shift at ${beforeData.siteAddress || 'a site'} on ${beforeData.date} has been deleted by an administrator.`,
+          message: `Your scheduled shift at ${beforeData.siteAddress || 'a site'} on ${beforeData.date} has been deleted.`,
           type: "shift",
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -90,7 +90,7 @@ exports.onShiftWrite = functions.firestore
       return;
     }
 
-    // Shift Created
+    // 2. Shift Created
     if (!beforeData && afterData) {
       if (afterData.userId) {
         await db.collection("notifications").add({
@@ -105,9 +105,9 @@ exports.onShiftWrite = functions.firestore
       return;
     }
 
-    // Shift Updated
+    // 3. Shift Updated
     if (beforeData && afterData) {
-      // Status changed to cancelled
+      // 3a. Status changed to cancelled
       if (beforeData.status !== 'cancelled' && afterData.status === 'cancelled') {
         if (afterData.userId) {
           await db.collection("notifications").add({
@@ -122,21 +122,64 @@ exports.onShiftWrite = functions.firestore
         return;
       }
 
-      const timeChanged = beforeData.startTime !== afterData.startTime;
-      const dateChanged = beforeData.date !== afterData.date;
-      const siteChanged = beforeData.siteId !== afterData.siteId;
-
-      if (timeChanged || dateChanged || siteChanged) {
+      // 3b. Status changed to completed
+      if (beforeData.status !== 'completed' && afterData.status === 'completed') {
         if (afterData.userId) {
           await db.collection("notifications").add({
             userId: afterData.userId,
-            title: "Shift Details Updated",
-            message: `Your schedule at ${afterData.siteAddress || 'a site'} was modified. New Slot: ${afterData.date} (${afterData.startTime || 'TBC'}).`,
+            title: "Job Completed",
+            message: `Your job at ${afterData.siteAddress || 'a site'} has been completed and closed.`,
             type: "shift",
             read: false,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
         }
+        return;
+      }
+
+      // 3c. User changed (Assigned, Unassigned, or Swapped)
+      const userChanged = beforeData.userId !== afterData.userId;
+      if (userChanged) {
+        // Notify old user they were unassigned
+        if (beforeData.userId) {
+          await db.collection("notifications").add({
+            userId: beforeData.userId,
+            title: "Shift Unassigned",
+            message: `You have been removed from the shift at ${beforeData.siteAddress || 'a site'} on ${beforeData.date}.`,
+            type: "shift",
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        // Notify new user they were assigned
+        if (afterData.userId) {
+          await db.collection("notifications").add({
+            userId: afterData.userId,
+            title: "New Shift Assigned",
+            message: `You have been assigned to ${afterData.siteAddress || 'a site'} on ${afterData.date} (${afterData.startTime || 'TBC'}).`,
+            type: "shift",
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        return;
+      }
+
+      // 3d. Core Details Changed (time, date, site, or task) - only if same user is assigned
+      const timeChanged = beforeData.startTime !== afterData.startTime;
+      const dateChanged = beforeData.date !== afterData.date;
+      const siteChanged = beforeData.siteId !== afterData.siteId;
+      const taskChanged = beforeData.task !== afterData.task;
+
+      if ((timeChanged || dateChanged || siteChanged || taskChanged) && afterData.userId) {
+        await db.collection("notifications").add({
+          userId: afterData.userId,
+          title: "Shift Details Updated",
+          message: `Your schedule at ${afterData.siteAddress || 'a site'} was modified. New Slot: ${afterData.date} (${afterData.startTime || 'TBC'}).`,
+          type: "shift",
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
       }
     }
   });

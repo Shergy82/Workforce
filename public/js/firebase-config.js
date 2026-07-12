@@ -39,6 +39,11 @@ export async function initializeFirebaseServices() {
 
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    // Explicitly set local persistence so session is kept across restarts
+    const { setPersistence, browserLocalPersistence } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
+    setPersistence(auth, browserLocalPersistence).catch(err => {
+      console.warn("Failed to set auth persistence:", err);
+    });
     db = getFirestore(app);
     storage = getStorage(app);
     isMockMode = false;
@@ -412,11 +417,11 @@ function initializeMockServices() {
     }
   }
   
-  // Set current user from session storage if present
-  const sessionUser = sessionStorage.getItem('workforce_mock_user');
-  if (sessionUser) {
+  // Set current user from local storage if present
+  const localUser = localStorage.getItem('workforce_mock_user');
+  if (localUser) {
     try {
-      mockCurrentUser = JSON.parse(sessionUser);
+      mockCurrentUser = JSON.parse(localUser);
     } catch (e) {}
   }
 }
@@ -428,9 +433,9 @@ export function saveMockDb() {
 export function mockSetCurrentUser(user) {
   mockCurrentUser = user;
   if (user) {
-    sessionStorage.setItem('workforce_mock_user', JSON.stringify(user));
+    localStorage.setItem('workforce_mock_user', JSON.stringify(user));
   } else {
-    sessionStorage.removeItem('workforce_mock_user');
+    localStorage.removeItem('workforce_mock_user');
   }
 }
 

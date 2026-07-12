@@ -333,8 +333,7 @@ function showAddShiftModal(projects, users) {
       try {
         await createShift(payload);
         
-        // Notify user
-        await createNotification(userId, "New Shift Assigned", `You are scheduled at ${project.name} on ${formatDate(date)} from ${startTime} - ${endTime}.`, "shift");
+        // Notification handled by Cloud Function
 
         showToast("Shift scheduled!", "success");
         hideModal();
@@ -417,7 +416,7 @@ async function parseAndImportCSV(csvText, projects, users) {
       };
 
       await createShift(payload);
-      await createNotification(worker.id, "Shift Assigned", `Imported shift at ${project.name} scheduled for ${formatDate(date)}.`, "shift");
+      // Notification handled by Cloud Function
       importedCount++;
     } else {
       errorCount++;

@@ -723,9 +723,26 @@ export async function signDocument(docId, userId) {
 // HR: HOLIDAYS, ABSENCES & RECORDS
 // ----------------------------------------------------
 export async function getHolidayRequests() {
-  if (isMockMode) return mockDb.holidayRequests;
-  const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const snapshot = await getDocs(collection(db, 'holidayRequests'));
+  const currentUid = isMockMode ? (mockCurrentUser ? mockCurrentUser.id : null) : (auth && auth.currentUser ? auth.currentUser.uid : null);
+  if (isMockMode) {
+    const user = mockDb.users.find(u => u.id === currentUid);
+    const isManagerOrAbove = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'owner');
+    if (!isManagerOrAbove) {
+      return mockDb.holidayRequests.filter(r => r.userId === currentUid);
+    }
+    return mockDb.holidayRequests;
+  }
+  
+  const user = await getUser(currentUid);
+  const role = user ? user.role : 'operative';
+  const isManagerOrAbove = role === 'admin' || role === 'manager' || role === 'owner';
+
+  const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  let ref = collection(db, 'holidayRequests');
+  if (!isManagerOrAbove) {
+    ref = query(ref, where('userId', '==', currentUid));
+  }
+  const snapshot = await getDocs(ref);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 

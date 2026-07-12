@@ -226,13 +226,7 @@ function setupShiftDetailEvents(container, shift, currentUser) {
       if (oldTask !== task) changes.push(`task modified to "${task}"`);
 
       if (changes.length > 0) {
-        // Trigger notification
-        await createNotification(
-          shift.userId,
-          "Shift Updated by Admin",
-          `Your schedule has been adjusted: ${changes.join(', ')}.`,
-          "shift"
-        );
+      // Notification handled by Cloud Function
       }
 
       showToast("Shift modifications saved successfully!", "success");
@@ -257,13 +251,7 @@ function setupShiftDetailEvents(container, shift, currentUser) {
             timestamps
           });
 
-          // Trigger cancellation notification
-          await createNotification(
-            shift.userId,
-            "Shift CANCELLED",
-            `Your shift scheduled at ${shift.siteAddress} on ${formatDate(shift.date)} has been CANCELLED by administration.`,
-            "shift"
-          );
+          // Notification handled by Cloud Function
 
           showToast("Shift cancelled successfully.", "warning");
           location.reload();

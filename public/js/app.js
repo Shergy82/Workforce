@@ -71,6 +71,9 @@ async function handleAuthStateChange(user) {
             snapshot.docChanges().forEach(change => {
               if (change.type === 'added') {
                 const notif = change.doc.data();
+                if (notif.type === 'shift') {
+                  checkForAwaitingShifts(user);
+                }
                 if (Notification.permission === 'granted' && user.pushNotificationsEnabled !== false) {
                   if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.ready.then(reg => {
@@ -115,6 +118,7 @@ async function handleAuthStateChange(user) {
       }
     }
 
+    checkForAwaitingShifts(user);
     routeView();
   } else {
     // Clear notifications listener
@@ -734,5 +738,90 @@ function setupGlobalListeners() {
       window.closeMoreDrawer();
       window.closeProfileSheet();
     });
+  }
+}
+
+async function checkForAwaitingShifts(user) {
+  if (!user || user.role !== 'operative') return;
+
+  try {
+    const { getShifts, updateShift } = await import('./db.js');
+    const { showModal, hideModal } = await import('./components/modal.js');
+    const { showToast } = await import('./components/toast.js');
+
+    const shifts = await getShifts();
+    const awaitingShifts = shifts.filter(s => s.userId === user.id && (s.status === 'awaiting' || s.status === 'pending' || !s.status));
+
+    if (awaitingShifts.length > 0) {
+      const shift = awaitingShifts[0];
+      
+      const modalHTML = `
+        <div style="text-align: center; padding: 12px 0;">
+          <i class="fa-solid fa-calendar-check" style="font-size: 3rem; color: hsl(var(--primary)); margin-bottom: 16px; display: block;"></i>
+          <h4 style="margin-bottom: 12px; font-weight: 700; font-size: 1.1rem; color: hsl(var(--text-main));">New Shift Issued!</h4>
+          <p style="font-size: 0.88rem; margin-bottom: 24px; color: hsl(var(--text-main)); text-align: left; line-height: 1.6; background: hsl(var(--bg-primary)/0.4); padding: 12px; border-radius: 8px; border: 1px solid hsl(var(--border)/0.5);">
+            <strong>Site Address:</strong> ${shift.siteAddress || 'TBC'}<br>
+            <strong>Date:</strong> ${shift.date}<br>
+            <strong>Start Time:</strong> ${shift.startTime || 'TBC'}<br>
+            <strong>Task Instruction:</strong> ${shift.task || 'N/A'}
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button id="btn-accept-shift-modal" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700;">
+              <i class="fa-solid fa-check" style="margin-right: 6px;"></i> Accept Shift
+            </button>
+            <button id="btn-reject-shift-modal" class="btn btn-secondary" style="width: 100%; padding: 12px; border: 1px solid hsl(var(--danger)); color: hsl(var(--danger)); font-weight: 700; background: transparent;">
+              <i class="fa-solid fa-xmark" style="margin-right: 6px;"></i> Reject Shift
+            </button>
+          </div>
+        </div>
+      `;
+
+      showModal({
+        title: 'Action Required',
+        bodyHTML: modalHTML,
+        showFooter: false,
+        showCloseBtn: false
+      });
+
+      document.getElementById('btn-accept-shift-modal').addEventListener('click', async () => {
+        try {
+          const btn = document.getElementById('btn-accept-shift-modal');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Accepting...';
+          const now = new Date().toISOString();
+          const timestamps = shift.timestamps || {};
+          timestamps.confirmed = now;
+          await updateShift(shift.id, { status: 'confirmed', timestamps });
+          showToast("Shift accepted! ✅", "success");
+          hideModal();
+          checkForAwaitingShifts(user);
+        } catch (err) {
+          showToast("Error accepting shift: " + err.message, "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check" style="margin-right: 6px;"></i> Accept Shift';
+        }
+      });
+
+      document.getElementById('btn-reject-shift-modal').addEventListener('click', async () => {
+        try {
+          const btn = document.getElementById('btn-reject-shift-modal');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Rejecting...';
+          const now = new Date().toISOString();
+          const timestamps = shift.timestamps || {};
+          timestamps.rejected = now;
+          await updateShift(shift.id, { status: 'rejected', timestamps });
+          showToast("Shift rejected.", "warning");
+          hideModal();
+          checkForAwaitingShifts(user);
+        } catch (err) {
+          showToast("Error rejecting shift: " + err.message, "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-xmark" style="margin-right: 6px;"></i> Reject Shift';
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Error in checkForAwaitingShifts:", err);
   }
 }

@@ -37,9 +37,9 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // Allow creation during setup or by admins
       allow create: if isAuthenticated() && (isAdmin() || isOwner(userId));
-      // Only admins can change roles, users can edit their profile info (not role)
+      // Only admins/managers can change roles, users can edit their profile info (not role)
       allow update: if isAuthenticated() && (
-        isAdmin() || 
+        isManager() || 
         (isOwner(userId) && request.resource.data.role == resource.data.role)
       );
       allow delete: if isAdmin();
@@ -67,7 +67,14 @@ service cloud.firestore {
 
     match /shifts/{shiftId} {
       allow read: if isAuthenticated() && (isSupervisor() || resource.data.userId == request.auth.uid);
-      allow write: if isManager();
+      allow create, delete: if isManager();
+      allow update: if isManager() || (
+        isAuthenticated() && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.siteId == resource.data.siteId &&
+        request.resource.data.date == resource.data.date
+      );
     }
 
     match /tasks/{taskId} {

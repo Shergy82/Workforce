@@ -943,14 +943,7 @@ function setupBoardEvents(container, user, planner, operatives, plannerSites, al
           try {
             await updateShift(shiftId, { status: 'cancelled' });
 
-            if (userId) {
-              await createNotification(
-                userId,
-                "Shift Cancelled",
-                `Your shift at ${address || 'a site'} on ${date ? formatDate(date) : 'a scheduled date'} has been cancelled.`,
-                "shift"
-              );
-            }
+            // Notification handled by Cloud Function
 
             showToast("Shift cancelled!", "success");
             hideModal();
@@ -990,14 +983,7 @@ function setupBoardEvents(container, user, planner, operatives, plannerSites, al
           try {
             await deleteShift(shiftId);
 
-            if (userId) {
-              await createNotification(
-                userId,
-                "Shift Deleted",
-                `Your shift at ${address || 'a site'} on ${date ? formatDate(date) : 'a scheduled date'} has been deleted.`,
-                "shift"
-              );
-            }
+            // Notification handled by Cloud Function
 
             showToast("Shift deleted successfully!", "success");
             hideModal();
@@ -1227,12 +1213,7 @@ export async function openScheduleModal(container, dragDataId, targetSiteId, tar
           requiredPhotos: modalRequiredPhotos
         });
 
-        await createNotification(
-          engineer.id,
-          "New Job Scheduled",
-          `You have been scheduled at ${selectedSiteAddress} on ${formatDate(selectedDate)} (${startTime}).`,
-          "shift"
-        );
+        // Notification handled by Cloud Function
 
         showToast(`Scheduled ${engineer.name} successfully!`, "success");
         hideModal();
