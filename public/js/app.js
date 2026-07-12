@@ -45,10 +45,23 @@ async function handleAuthStateChange(user) {
     if (isMockMode) {
       const { mockDb } = await import('./firebase-config.js');
       const checkMockUnread = () => {
-        const count = (mockDb.notifications || []).filter(n => n.userId === user.id && !n.read).length;
+        const unread = (mockDb.notifications || []).filter(n => n.userId === user.id && !n.read);
+        const count = unread.length;
+        const chatCount = unread.filter(n => n.type === 'chat').length;
+
         const badge = document.getElementById('unread-count');
         if (badge) {
           badge.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        const sidebarChatBadge = document.getElementById('sidebar-chat-badge');
+        if (sidebarChatBadge) {
+          sidebarChatBadge.style.display = chatCount > 0 ? 'block' : 'none';
+        }
+
+        const bottomChatBadge = document.getElementById('bottom-chat-badge');
+        if (bottomChatBadge) {
+          bottomChatBadge.style.display = chatCount > 0 ? 'block' : 'none';
         }
       };
       checkMockUnread();
@@ -64,6 +77,19 @@ async function handleAuthStateChange(user) {
           const badge = document.getElementById('unread-count');
           if (badge) {
             badge.style.display = snapshot.size > 0 ? 'block' : 'none';
+          }
+
+          const unreadNotifs = snapshot.docs.map(doc => doc.data());
+          const chatCount = unreadNotifs.filter(n => n.type === 'chat').length;
+
+          const sidebarChatBadge = document.getElementById('sidebar-chat-badge');
+          if (sidebarChatBadge) {
+            sidebarChatBadge.style.display = chatCount > 0 ? 'block' : 'none';
+          }
+
+          const bottomChatBadge = document.getElementById('bottom-chat-badge');
+          if (bottomChatBadge) {
+            bottomChatBadge.style.display = chatCount > 0 ? 'block' : 'none';
           }
 
           // Trigger native browser notification on new unread notifications
@@ -166,9 +192,10 @@ function renderSidebarMenu(role) {
   }
 
   menu.innerHTML = items.map(item => `
-    <button class="menu-item" data-hash="${item.hash}" onclick="location.hash='${item.hash}'">
+    <button class="menu-item" data-hash="${item.hash}" onclick="location.hash='${item.hash}'" style="position: relative;">
       <i class="fa-solid ${item.icon}"></i>
       <span>${item.label}</span>
+      ${item.name === 'chat' ? `<span id="sidebar-chat-badge" style="display:none; position:absolute; right:16px; top:50%; transform:translateY(-50%); background-color:hsl(var(--danger)); border-radius:50%; width:8px; height:8px;"></span>` : ''}
     </button>
   `).join('');
 }
@@ -213,9 +240,10 @@ function renderBottomNav(role) {
 
   bottomNav.innerHTML = [
     ...primaryItems.map(item => `
-      <button class="nav-btn" data-hash="${item.hash}" onclick="location.hash='${item.hash}'">
+      <button class="nav-btn" data-hash="${item.hash}" onclick="location.hash='${item.hash}'" style="position: relative;">
         <i class="fa-solid ${item.icon}"></i>
         <span>${item.label}</span>
+        ${item.label.toLowerCase() === 'chat' ? `<span id="bottom-chat-badge" style="display:none; position:absolute; top:8px; right:30%; background-color:hsl(var(--danger)); border-radius:50%; width:8px; height:8px;"></span>` : ''}
       </button>
     `),
     `<button class="nav-btn nav-btn-more" id="more-nav-btn" onclick="window.openMoreDrawer()">
@@ -754,9 +782,15 @@ async function checkForAwaitingShifts(user) {
     const { getShifts, updateShift } = await import('./db.js');
     const { showModal, hideModal } = await import('./components/modal.js');
     const { showToast } = await import('./components/toast.js');
+    const { getLocalDateString } = await import('./utils.js');
+    const todayStr = getLocalDateString();
 
     const shifts = await getShifts();
-    const awaitingShifts = shifts.filter(s => s.userId === user.id && (s.status === 'awaiting' || s.status === 'pending' || !s.status));
+    const awaitingShifts = shifts.filter(s => 
+      s.userId === user.id && 
+      (s.status === 'awaiting' || s.status === 'pending' || !s.status) &&
+      s.date >= todayStr
+    );
 
     if (awaitingShifts.length > 0) {
       const shift = awaitingShifts[0];

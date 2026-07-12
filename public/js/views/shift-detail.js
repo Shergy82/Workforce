@@ -65,12 +65,21 @@ async function renderShiftDetails(container, user, shiftId) {
       evidenceHTML = `
         <div class="card" style="border-left: 5px solid hsl(var(--success));">
           <div class="card-title" style="color: hsl(var(--success));"><i class="fa-solid fa-circle-check"></i> Completion Evidence Submissions</div>
-          <div style="font-size: 0.9rem; margin-bottom: 12px;">
-            <strong>Completion Notes:</strong><br>
-            <span style="font-style: italic; color: hsl(var(--text-muted));">${shift.completionNotes || 'No notes left by operative.'}</span>
+          <div style="font-size: 0.9rem; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+            <div><strong>Completion Notes:</strong> <span style="font-style: italic; color: hsl(var(--text-muted));">${shift.completionNotes || 'No notes left by operative.'}</span></div>
+            <div style="font-size: 0.8rem; color: hsl(var(--text-muted)); margin-top: 4px;">
+              Uploaded by: <strong>${engineer.name}</strong> on <strong>${t.completed ? new Date(t.completed).toLocaleString() : 'N/A'}</strong>
+            </div>
           </div>
           <div>
-            <strong>Completion Photos:</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <strong>Completion Photos:</strong>
+              ${shift.completionPhotos && shift.completionPhotos.length > 0 ? `
+                <button class="btn btn-secondary" id="btn-download-all-photos" style="padding: 4px 8px; font-size: 0.75rem;">
+                  <i class="fa-solid fa-cloud-arrow-down"></i> Download All Photos
+                </button>
+              ` : ''}
+            </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
               ${shift.completionPhotos && shift.completionPhotos.length > 0 ? shift.completionPhotos.map(url => `
                 <img src="${url}" style="width: 100px; height: 100px; border-radius: 6px; object-fit: cover; border: 1px solid hsl(var(--border)); cursor: pointer;" onclick="window.open('${url}')">
@@ -83,14 +92,25 @@ async function renderShiftDetails(container, user, shiftId) {
       evidenceHTML = `
         <div class="card" style="border-left: 5px solid hsl(var(--danger));">
           <div class="card-title" style="color: hsl(var(--danger));"><i class="fa-solid fa-triangle-exclamation"></i> Incomplete Job Report</div>
-          <div style="font-size: 0.9rem; margin-bottom: 12px;">
-            <strong>Barrier / Reason for Incomplete Work:</strong><br>
-            <div style="padding: 10px; background-color: hsl(var(--danger)/0.05); border-left: 3px solid hsl(var(--danger)); border-radius: var(--radius-sm); margin-top: 4px; font-weight: 500;">
-              ${shift.incompleteReason || 'No reason provided.'}
+          <div style="font-size: 0.9rem; margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px;">
+            <div><strong>Barrier / Reason for Incomplete Work:</strong>
+              <div style="padding: 10px; background-color: hsl(var(--danger)/0.05); border-left: 3px solid hsl(var(--danger)); border-radius: var(--radius-sm); margin-top: 4px; font-weight: 500;">
+                ${shift.incompleteReason || 'No reason provided.'}
+              </div>
+            </div>
+            <div style="font-size: 0.8rem; color: hsl(var(--text-muted)); margin-top: 4px;">
+              Reported by: <strong>${engineer.name}</strong> on <strong>${t.incomplete ? new Date(t.incomplete).toLocaleString() : 'N/A'}</strong>
             </div>
           </div>
           <div>
-            <strong>Site Barrier Photos:</strong>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <strong>Site Barrier Photos:</strong>
+              ${shift.incompletePhotos && shift.incompletePhotos.length > 0 ? `
+                <button class="btn btn-secondary" id="btn-download-all-photos" style="padding: 4px 8px; font-size: 0.75rem;">
+                  <i class="fa-solid fa-cloud-arrow-down"></i> Download All Photos
+                </button>
+              ` : ''}
+            </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
               ${shift.incompletePhotos && shift.incompletePhotos.length > 0 ? shift.incompletePhotos.map(url => `
                 <img src="${url}" style="width: 100px; height: 100px; border-radius: 6px; object-fit: cover; border: 1px solid hsl(var(--border)); cursor: pointer;" onclick="window.open('${url}')">
@@ -261,6 +281,29 @@ function setupShiftDetailEvents(container, shift, currentUser) {
       }
     });
   }
+// Bulk download all photos
+  const downloadAllBtn = document.getElementById('btn-download-all-photos');
+  if (downloadAllBtn) {
+    downloadAllBtn.addEventListener('click', async () => {
+      const photoUrls = shift.status === 'completed' ? (shift.completionPhotos || []) : (shift.incompletePhotos || []);
+      if (!photoUrls.length) return;
+      for (const url of photoUrls) {
+        try {
+          const res = await fetch(url);
+          const blob = await res.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          const filename = url.split('/').pop().split('?')[0] || 'photo.jpg';
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } catch (e) {
+          console.error('Failed to download', url, e);
+        }
+      }
+    });
+  }
 }
+
 
 export function destroy() {}

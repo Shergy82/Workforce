@@ -141,7 +141,9 @@ function setupTaskEvents(user, tasks, projects, users) {
 }
 
 function showCreateTaskModal(projects, users) {
-  const operatives = users.filter(u => u.role === 'operative');
+  const operatives = (users || []).filter(u => u.role === 'operative');
+  const projectList = projects || [];
+
   showModal({
     title: 'Create & Assign Task',
     bodyHTML: `
@@ -157,13 +159,19 @@ function showCreateTaskModal(projects, users) {
         <div class="form-group">
           <label class="form-label" for="task-project">Related Project Site</label>
           <select class="form-input" id="task-project" required>
-            ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            ${projectList.length > 0 
+              ? projectList.map(p => `<option value="${p.id}">${p.name || p.scheme || p.address || 'Unnamed Site'}</option>`).join('')
+              : '<option value="">No Active Projects Available</option>'
+            }
           </select>
         </div>
         <div class="form-group">
           <label class="form-label" for="task-user">Assign to Employee</label>
           <select class="form-input" id="task-user" required>
-            ${operatives.map(o => `<option value="${o.id}">${o.name}</option>`).join('')}
+            ${operatives.length > 0
+              ? operatives.map(o => `<option value="${o.id}">${o.name}</option>`).join('')
+              : '<option value="">No Operatives Available</option>'
+            }
           </select>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -184,12 +192,36 @@ function showCreateTaskModal(projects, users) {
     `,
     confirmText: 'Assign Task',
     onConfirm: async (body) => {
-      const title = body.querySelector('#task-title').value;
-      const description = body.querySelector('#task-desc').value;
-      const projectId = body.querySelector('#task-project').value;
-      const assignedTo = body.querySelector('#task-user').value;
-      const priority = body.querySelector('#task-priority').value;
-      const dueDate = body.querySelector('#task-due').value;
+      const titleEl = body.querySelector('#task-title');
+      const descEl = body.querySelector('#task-desc');
+      const projectEl = body.querySelector('#task-project');
+      const userEl = body.querySelector('#task-user');
+      const priorityEl = body.querySelector('#task-priority');
+      const dueEl = body.querySelector('#task-due');
+
+      if (!titleEl || !titleEl.value.trim()) {
+        showToast("Please enter a task title.", "error");
+        return;
+      }
+      if (!descEl || !descEl.value.trim()) {
+        showToast("Please enter a task description.", "error");
+        return;
+      }
+      if (!projectEl || !projectEl.value) {
+        showToast("Please select a project site.", "error");
+        return;
+      }
+      if (!userEl || !userEl.value) {
+        showToast("Please select an assignee.", "error");
+        return;
+      }
+
+      const title = titleEl.value;
+      const description = descEl.value;
+      const projectId = projectEl.value;
+      const assignedTo = userEl.value;
+      const priority = priorityEl ? priorityEl.value : 'medium';
+      const dueDate = dueEl ? dueEl.value : new Date().toISOString().split('T')[0];
 
       const payload = { title, description, projectId, assignedTo, priority, dueDate };
 

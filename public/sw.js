@@ -51,6 +51,18 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
 
+  // Skip caching for Firebase APIs, auth tokens, local testing, or non-origin assets
+  const url = e.request.url;
+  if (
+    url.includes('googleapis.com') || 
+    url.includes('firebaseapp.com') || 
+    url.includes('firebaseio.com') ||
+    url.includes('localhost') ||
+    !url.startsWith(self.location.origin)
+  ) {
+    return;
+  }
+
   // Network-First with cache fallback strategy
   e.respondWith(
     fetch(e.request)
