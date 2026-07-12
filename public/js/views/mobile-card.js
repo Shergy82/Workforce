@@ -39,7 +39,8 @@ async function renderJobCardDetail(container, user, shiftId) {
       return;
     }
 
-    const site = sites.find(s => s.id === shift.siteId) || { files: [], notes: '' };
+    const targetSiteId = shift.siteId || shift.projectId;
+    const site = sites.find(s => s.id === targetSiteId) || { files: [], notes: '' };
 
     // Get color badge class
     let statusClass = 'status-pending';
@@ -154,6 +155,9 @@ async function renderJobCardDetail(container, user, shiftId) {
                 }).join('') : '<p style="color: hsl(var(--text-muted)); font-size: 0.75rem;">No photos.</p>'}
               </div>
             </div>
+            <button class="btn btn-secondary" id="btn-reopen-job" style="width: 100%; padding: 10px; font-weight: 700; margin-top: 16px; border: 1px solid hsl(var(--warning)); color: hsl(var(--warning)); background: transparent; display: flex; align-items: center; justify-content: center; gap: 8px;">
+               <i class="fa-solid fa-rotate-left"></i> Reopen Completed Job
+            </button>
         </div>
       `;
     } else if (shift.status === 'incomplete') {
@@ -245,10 +249,13 @@ async function renderJobCardDetail(container, user, shiftId) {
           <div style="display: flex; flex-direction: column; gap: 8px;">
             ${site.files && site.files.length > 0 ? site.files.map(f => `
               <div style="padding: 8px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.2);">
-                <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
-                  <i class="fa-solid ${f.type.includes('pdf') ? 'fa-file-pdf text-red-500' : 'fa-file-lines'} fa-lg"></i>
-                  <a href="${f.url}" target="_blank" style="font-size: 0.8rem; font-weight: 600; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${f.name}</a>
+                <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                  <i class="fa-solid ${(f.type && f.type.includes('pdf')) ? 'fa-file-pdf text-red-500' : 'fa-file-lines'} fa-lg"></i>
+                  <a href="${f.url}" target="_blank" download="${f.name}" style="font-size: 0.8rem; font-weight: 600; text-decoration: underline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; flex: 1; color: hsl(var(--text-main));">${f.name}</a>
                 </div>
+                <a href="${f.url}" target="_blank" download="${f.name}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">
+                  <i class="fa-solid fa-cloud-arrow-down"></i> Save
+                </a>
               </div>
             `).join('') : '<p style="color: hsl(var(--text-muted)); font-size: 0.8rem; font-style: italic; text-align: center;">No site documents loaded.</p>'}
           </div>
@@ -409,13 +416,15 @@ function setupJobCardEvents(container, shift, site, currentUser) {
 
         // Save photo and log history against central site address record
         const updatedPhotos = site.photos ? [...site.photos] : [];
-        updatedPhotos.push({
-          url: photoUrl,
-          uploadedBy: currentUser.name,
-          date: now.split('T')[0]
+        photoUrls.forEach(url => {
+          updatedPhotos.push({
+            url: url,
+            uploadedBy: currentUser.name,
+            date: now.split('T')[0]
+          });
         });
 
-        await updateSite(shift.siteId, {
+        await updateSite(targetSiteId, {
           photos: updatedPhotos
         });
 
@@ -467,6 +476,26 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         showToast(err.message, "error");
         submitBtn.disabled = false;
         submitBtn.innerHTML = `Submit Incomplete Report`;
+      }
+    });
+  }
+
+  // 6. Reopen Completed Job
+  const reopenBtn = document.getElementById('btn-reopen-job');
+  if (reopenBtn) {
+    reopenBtn.addEventListener('click', async () => {
+      if (confirm("Are you sure you want to reopen this job? This will reset its status to 'on site' so you can update notes or upload missing photos.")) {
+        reopenBtn.disabled = true;
+        reopenBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Reopening...`;
+        try {
+          await updateShift(shift.id, { status: 'on site' });
+          showToast("Job reopened. You can now edit/add details.", "success");
+          init(container);
+        } catch (err) {
+          showToast(err.message, "error");
+          reopenBtn.disabled = false;
+          reopenBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Reopen Completed Job`;
+        }
       }
     });
   }

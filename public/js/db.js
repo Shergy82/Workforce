@@ -457,9 +457,26 @@ export async function approveTimesheet(timesheetId, approverId, status = 'approv
 // TASKS
 // ----------------------------------------------------
 export async function getTasks() {
-  if (isMockMode) return mockDb.tasks;
-  const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const snapshot = await getDocs(collection(db, 'tasks'));
+  const currentUid = isMockMode ? (mockCurrentUser ? mockCurrentUser.id : null) : (auth && auth.currentUser ? auth.currentUser.uid : null);
+  if (isMockMode) {
+    const user = mockDb.users.find(u => u.id === currentUid);
+    const isSupervisorOrAbove = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'owner' || user.role === 'supervisor');
+    if (!isSupervisorOrAbove) {
+      return (mockDb.tasks || []).filter(t => t.assignedTo === currentUid);
+    }
+    return mockDb.tasks || [];
+  }
+
+  const user = await getUser(currentUid);
+  const role = user ? user.role : 'operative';
+  const isSupervisorOrAbove = role === 'admin' || role === 'manager' || role === 'owner' || role === 'supervisor';
+
+  const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  let ref = collection(db, 'tasks');
+  if (!isSupervisorOrAbove) {
+    ref = query(ref, where('assignedTo', '==', currentUid));
+  }
+  const snapshot = await getDocs(ref);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
@@ -516,9 +533,26 @@ export async function createForm(formData) {
 }
 
 export async function getFormSubmissions() {
-  if (isMockMode) return mockDb.formSubmissions;
-  const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const snapshot = await getDocs(collection(db, 'formSubmissions'));
+  const currentUid = isMockMode ? (mockCurrentUser ? mockCurrentUser.id : null) : (auth && auth.currentUser ? auth.currentUser.uid : null);
+  if (isMockMode) {
+    const user = mockDb.users.find(u => u.id === currentUid);
+    const isManagerOrAbove = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'owner');
+    if (!isManagerOrAbove) {
+      return (mockDb.formSubmissions || []).filter(s => s.userId === currentUid);
+    }
+    return mockDb.formSubmissions || [];
+  }
+
+  const user = await getUser(currentUid);
+  const role = user ? user.role : 'operative';
+  const isManagerOrAbove = role === 'admin' || role === 'manager' || role === 'owner';
+
+  const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  let ref = collection(db, 'formSubmissions');
+  if (!isManagerOrAbove) {
+    ref = query(ref, where('userId', '==', currentUid));
+  }
+  const snapshot = await getDocs(ref);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
@@ -580,9 +614,26 @@ export async function markAnnouncementAsRead(annId, userId) {
 }
 
 export async function getChats() {
-  if (isMockMode) return mockDb.chats;
-  const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  const snapshot = await getDocs(collection(db, 'chats'));
+  const currentUid = isMockMode ? (mockCurrentUser ? mockCurrentUser.id : null) : (auth && auth.currentUser ? auth.currentUser.uid : null);
+  if (isMockMode) {
+    const user = mockDb.users.find(u => u.id === currentUid);
+    const isManagerOrAbove = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'owner');
+    if (!isManagerOrAbove) {
+      return (mockDb.chats || []).filter(c => c.members.includes(currentUid));
+    }
+    return mockDb.chats || [];
+  }
+
+  const user = await getUser(currentUid);
+  const role = user ? user.role : 'operative';
+  const isManagerOrAbove = role === 'admin' || role === 'manager' || role === 'owner';
+
+  const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+  let ref = collection(db, 'chats');
+  if (!isManagerOrAbove) {
+    ref = query(ref, where('members', 'array-contains', currentUid));
+  }
+  const snapshot = await getDocs(ref);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
