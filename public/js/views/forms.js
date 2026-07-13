@@ -200,6 +200,14 @@ function renderDynamicFormFields(container, tmpl, projectSelect) {
       const selectEl = document.getElementById('select-form-tmpl');
       if (selectEl) selectEl.value = '';
       container.innerHTML = '';
+
+      // Return user back to main screen
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.role === 'operative') {
+        location.hash = '#/mobile-jobs';
+      } else {
+        location.hash = '#/admin';
+      }
     } catch (err) {
       showToast(err.message, "error");
       submitBtn.disabled = false;
