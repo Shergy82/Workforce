@@ -13,10 +13,19 @@ export let storage = null;
 
 export async function initializeFirebaseServices() {
   try {
+    // Try to load cached config from local storage first (critical for offline startup)
+    const cachedConfig = localStorage.getItem('firebase_config_cache');
+    if (cachedConfig) {
+      try {
+        firebaseConfig = JSON.parse(cachedConfig);
+      } catch (err) {}
+    }
+
     // 1. Try to fetch local config.json first (only valid if it returns real JSON)
     const response = await fetch('/config.json').catch(() => null);
     if (response && response.ok && response.headers.get('content-type')?.includes('application/json')) {
       firebaseConfig = await response.json();
+      localStorage.setItem('firebase_config_cache', JSON.stringify(firebaseConfig));
     }
 
     // 2. If no valid config.json, use Firebase Hosting's auto-generated init.json
@@ -24,10 +33,11 @@ export async function initializeFirebaseServices() {
       const hostInit = await fetch('/__/firebase/init.json').catch(() => null);
       if (hostInit && hostInit.ok) {
         firebaseConfig = await hostInit.json();
+        localStorage.setItem('firebase_config_cache', JSON.stringify(firebaseConfig));
       }
     }
   } catch (e) {
-    console.warn("Could not fetch Firebase init configuration. Falling back to mock mode.");
+    console.warn("Could not fetch Firebase init configuration. Falling back to mock mode or cached config.", e);
   }
 
   if (firebaseConfig && firebaseConfig.apiKey) {

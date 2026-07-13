@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workforce-cache-v36';
+const CACHE_NAME = 'workforce-cache-v37';
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   '/js/app.js',
   '/js/auth.js',
   '/js/db.js',
+  '/js/firebase-config.js',
   '/js/storage.js',
   '/js/utils.js',
   '/js/components/modal.js',
@@ -22,6 +23,12 @@ const ASSETS = [
   '/js/views/shift-detail.js',
   '/js/views/mobile-jobs.js',
   '/js/views/mobile-card.js',
+  '/js/views/hr.js',
+  '/js/views/tasks.js',
+  '/js/views/forms.js',
+  '/js/views/docs.js',
+  '/js/views/chat.js',
+  '/js/views/help.js',
   '/manifest.json'
 ];
 
