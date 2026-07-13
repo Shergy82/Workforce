@@ -678,7 +678,7 @@ function setupGlobalListeners() {
                     <div style="padding: 10px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)); background-color: ${n.read ? 'hsl(var(--bg-primary)/0.3)' : 'hsl(var(--primary)/0.03)'}; border-left: 3px solid ${n.read ? 'hsl(var(--border))' : 'hsl(var(--primary))'}; position: relative;">
                       <div style="font-weight: 700; font-size: 0.85rem; color: hsl(var(--text-main));">${n.title}</div>
                       <div style="font-size: 0.78rem; color: hsl(var(--text-muted)); margin-top: 2px;">${n.message}</div>
-                      <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${new Date(n.createdAt).toLocaleDateString()}</div>
+                      <div style="font-size: 0.65rem; color: hsl(var(--text-muted)); margin-top: 4px; text-align: right;">${n.createdAt && !isNaN(new Date(n.createdAt).getTime()) ? new Date(n.createdAt).toLocaleDateString() : 'N/A'}</div>
                     </div>
                   `).join('')}
                  </div>`
@@ -690,15 +690,18 @@ function setupGlobalListeners() {
             bodyHTML: notifHTML,
             confirmText: 'Mark All Read',
             cancelText: 'Close',
-            onConfirm: async () => {
+            onConfirm: () => {
+              hideModal();
               const unreadList = list.filter(n => !n.read);
               if (unreadList.length > 0) {
-                for (const n of unreadList) {
-                  await markNotificationRead(n.id);
-                }
-                showToast("All notifications marked as read.", "success");
+                Promise.all(unreadList.map(n => markNotificationRead(n.id)))
+                  .then(() => {
+                    showToast("All notifications marked as read.", "success");
+                  })
+                  .catch(err => {
+                    console.error("Failed to mark notifications read:", err);
+                  });
               }
-              hideModal();
             }
           });
 

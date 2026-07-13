@@ -24,8 +24,8 @@ async function renderChatInterface(container, user) {
       getUsers()
     ]);
 
-    // Filter chats user is in OR general channels
-    const myChats = chats.filter(c => c.members.includes(user.id) || c.type === 'general');
+    // Filter chats user is in OR general channels, excluding direct chats
+    const myChats = chats.filter(c => (c.members.includes(user.id) || c.type === 'general') && c.type !== 'direct');
     
     // Direct chat list (exclude self)
     const directUsers = users.filter(u => u.id !== user.id);
@@ -48,7 +48,7 @@ async function renderChatInterface(container, user) {
                   <i class="fa-solid fa-hashtag" style="color:hsl(var(--primary));"></i>
                   <span style="font-weight: 600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.name}</span>
                 </button>
-                ${isManager() ? `
+                ${isManager() && c.type !== 'general' ? `
                   <button class="btn-delete-chat" data-chat-id="${c.id}" data-chat-name="${c.name}" title="Delete channel"
                     style="background:none; border:none; color:hsl(var(--danger)); cursor:pointer; padding:6px; border-radius:4px; flex-shrink:0; display:flex; align-items:center; opacity:0.6;"
                     onmouseover="this.style.opacity='1';this.style.backgroundColor='rgba(239,68,68,0.1)'"
@@ -288,6 +288,9 @@ async function startChatListening(chatId, user) {
   const { isMockMode, db } = await import('../firebase-config.js');
 
   const renderFeed = (messages) => {
+    // Clear notifications in real-time since we are looking at this active chat
+    markChatNotificationsRead(user.id, chatId).catch(() => {});
+
     if (messages.length === 0) {
       feed.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; color:hsl(var(--text-muted)); height:100%;">

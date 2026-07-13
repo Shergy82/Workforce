@@ -42,12 +42,24 @@ export function hideModal() {
 }
 
 closeBtn.addEventListener('click', () => {
-  if (activeCancelCallback) activeCancelCallback();
+  if (activeCancelCallback) {
+    try {
+      activeCancelCallback();
+    } catch (err) {
+      console.error('Modal cancel callback error:', err);
+    }
+  }
   hideModal();
 });
 
 cancelBtn.addEventListener('click', () => {
-  if (activeCancelCallback) activeCancelCallback();
+  if (activeCancelCallback) {
+    try {
+      activeCancelCallback();
+    } catch (err) {
+      console.error('Modal cancel callback error:', err);
+    }
+  }
   hideModal();
 });
 
