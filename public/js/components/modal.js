@@ -15,14 +15,17 @@ export function showModal({
   onCancel = null,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  showFooter = true
+  showFooter = true,
+  showCloseBtn = true
 }) {
   titleElem.textContent = title;
   bodyElem.innerHTML = bodyHTML;
   confirmBtn.textContent = confirmText;
   cancelBtn.textContent = cancelText;
+  confirmBtn.disabled = false;
 
   document.getElementById('modal-footer').style.display = showFooter ? 'flex' : 'none';
+  closeBtn.style.display = showCloseBtn ? '' : 'none';
 
   activeConfirmCallback = onConfirm;
   activeCancelCallback = onCancel;
@@ -34,6 +37,8 @@ export function hideModal() {
   overlay.classList.remove('active');
   activeConfirmCallback = null;
   activeCancelCallback = null;
+  confirmBtn.disabled = false;
+  closeBtn.style.display = '';
 }
 
 closeBtn.addEventListener('click', () => {
@@ -47,8 +52,18 @@ cancelBtn.addEventListener('click', () => {
 });
 
 confirmBtn.addEventListener('click', () => {
+  if (confirmBtn.disabled) return; // Guard against double-fire on rapid taps
   if (activeConfirmCallback) {
-    activeConfirmCallback(bodyElem);
+    confirmBtn.disabled = true; // Prevent re-entry while async callback runs
+    const cb = activeConfirmCallback;
+    Promise.resolve(cb(bodyElem)).catch(err => {
+      console.error('Modal confirm callback error:', err);
+    }).finally(() => {
+      // Only re-enable if modal is still open (not hidden by the callback itself)
+      if (overlay.classList.contains('active')) {
+        confirmBtn.disabled = false;
+      }
+    });
   } else {
     hideModal();
   }

@@ -514,7 +514,7 @@ async function renderWhiteboard(container, user) {
                 }).join('')}
               </div>
             </details>
-          `).join('')}}
+          `).join('')}
           ${activeJobs.length === 0 ? `
             <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: hsl(var(--text-muted));">
               <i class="fa-regular fa-clipboard fa-3x" style="margin-bottom: 12px; opacity: 0.4;"></i>
@@ -629,6 +629,31 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
   if (createForm) {
     // Populate presets selector
     const presetSelect = createForm.querySelector('#wb-job-preset-select');
+
+    // Photo checklist UI updater — defined first so it can be called from preset loader
+    const listContainer = createForm.querySelector('#wb-job-photo-req-list');
+    const updateAdminPhotoReqListUI = () => {
+      if (!listContainer) return;
+      listContainer.innerHTML = adminRequiredPhotos.map((req, idx) => `
+        <div style="display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)/0.6); font-size: 0.8rem; margin-top: 4px;">
+          <span style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: hsl(var(--text-main));">
+            <i class="fa-solid fa-camera" style="color: hsl(var(--primary)); font-size: 0.75rem;"></i> ${req}
+          </span>
+          <button type="button" class="btn-remove-admin-req" data-idx="${idx}" style="background: none; border: none; color: hsl(var(--danger)); cursor: pointer; padding: 2px;">
+            <i class="fa-regular fa-trash-can" style="font-size: 0.8rem;"></i>
+          </button>
+        </div>
+      `).join('');
+
+      listContainer.querySelectorAll('.btn-remove-admin-req').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          adminRequiredPhotos.splice(idx, 1);
+          updateAdminPhotoReqListUI();
+        });
+      });
+    };
+
     const populateAdminPresets = async () => {
       if (!presetSelect) return;
       const { getPresets } = await import('../db.js');
@@ -711,29 +736,6 @@ function setupWhiteboardEvents(container, operatives, sites, shifts, allUsers, w
     // Photo checklist interactive list
     const addPhotoBtn = createForm.querySelector('#wb-job-add-photo-req-btn');
     const photoInput = createForm.querySelector('#wb-job-photo-req-input');
-    const listContainer = createForm.querySelector('#wb-job-photo-req-list');
-
-    const updateAdminPhotoReqListUI = () => {
-      if (!listContainer) return;
-      listContainer.innerHTML = adminRequiredPhotos.map((req, idx) => `
-        <div style="display: flex; align-items: center; justify-content: space-between; background-color: hsl(var(--bg-primary)/0.6); padding: 8px 12px; border-radius: 6px; border: 1px solid hsl(var(--border)/0.6); font-size: 0.8rem; margin-top: 4px;">
-          <span style="font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: hsl(var(--text-main));">
-            <i class="fa-solid fa-camera" style="color: hsl(var(--primary)); font-size: 0.75rem;"></i> ${req}
-          </span>
-          <button type="button" class="btn-remove-admin-req" data-idx="${idx}" style="background: none; border: none; color: hsl(var(--danger)); cursor: pointer; padding: 2px;">
-            <i class="fa-regular fa-trash-can" style="font-size: 0.8rem;"></i>
-          </button>
-        </div>
-      `).join('');
-
-      listContainer.querySelectorAll('.btn-remove-admin-req').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.getAttribute('data-idx'));
-          adminRequiredPhotos.splice(idx, 1);
-          updateAdminPhotoReqListUI();
-        });
-      });
-    };
 
     if (addPhotoBtn && photoInput) {
       addPhotoBtn.addEventListener('click', (e) => {

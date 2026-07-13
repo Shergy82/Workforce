@@ -6,10 +6,15 @@ import { uploadFile } from '../storage.js';
 
 let shiftDetailUnsubscribe = null;
 let siteDetailUnsubscribe = null;
+let _activeContainer = null; // Track the current live mount
 
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
+
+  // Clean up any existing real-time listeners before re-rendering
+  destroy();
+  _activeContainer = container;
 
   const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
   const shiftId = urlParams.get('id');
@@ -29,6 +34,7 @@ export async function init(container) {
 
   await setupRealtimeShiftDetail(container, user, shiftId);
 }
+
 
 async function setupRealtimeShiftDetail(container, user, shiftId) {
   if (shiftDetailUnsubscribe) shiftDetailUnsubscribe();
@@ -368,7 +374,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         });
 
         showToast("Shift Confirmed! Ready to work.", "success");
-        init(container);
+        const liveMount = document.getElementById('view-mount');
+        if (liveMount) init(liveMount);
       } catch (err) {
         showToast(err.message, "error");
         confirmBtn.disabled = false;
@@ -395,7 +402,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         });
 
         showToast("You are now registered ON SITE.", "success");
-        init(container);
+        const liveMount = document.getElementById('view-mount');
+        if (liveMount) init(liveMount);
       } catch (err) {
         showToast(err.message, "error");
         onsiteBtn.disabled = false;
@@ -503,7 +511,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         });
 
         showToast("Completion evidence submitted!", "success");
-        init(container);
+        const liveMount = document.getElementById('view-mount');
+        if (liveMount) init(liveMount);
       } catch (err) {
         showToast(err.message, "error");
         submitBtn.disabled = false;
@@ -545,7 +554,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         });
 
         showToast("Incomplete job report logged.", "warning");
-        init(container);
+        const liveMount = document.getElementById('view-mount');
+        if (liveMount) init(liveMount);
       } catch (err) {
         showToast(err.message, "error");
         submitBtn.disabled = false;
@@ -564,7 +574,8 @@ function setupJobCardEvents(container, shift, site, currentUser) {
         try {
           await updateShift(shift.id, { status: 'on site' });
           showToast("Job reopened. You can now edit/add details.", "success");
-          init(container);
+          const liveMount = document.getElementById('view-mount');
+          if (liveMount) init(liveMount);
         } catch (err) {
           showToast(err.message, "error");
           reopenBtn.disabled = false;

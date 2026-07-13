@@ -2,6 +2,8 @@ import { getCurrentUser } from '../auth.js';
 import { getShifts, getSites, getUsers } from '../db.js';
 import { formatDate, getLoadingSpinner, getLocalDateString } from '../utils.js';
 
+let _clickOutsideHandler = null;
+
 export async function init(container) {
   const user = getCurrentUser();
   if (!user) return;
@@ -278,11 +280,19 @@ function renderAdminDashboard(container, user, shifts, sites, users) {
   });
 
   // Close search results clicking outside
-  document.addEventListener('click', (e) => {
-    if (e.target !== searchInput && e.target !== resultsDiv) {
-      resultsDiv.style.display = 'none';
+  _clickOutsideHandler = (e) => {
+    const resultsDiv2 = document.getElementById('search-results-mount');
+    if (!resultsDiv2) return;
+    if (e.target !== searchInput && !resultsDiv2.contains(e.target)) {
+      resultsDiv2.style.display = 'none';
     }
-  });
+  };
+  document.addEventListener('click', _clickOutsideHandler);
 }
 
-export function destroy() {}
+export function destroy() {
+  if (_clickOutsideHandler) {
+    document.removeEventListener('click', _clickOutsideHandler);
+    _clickOutsideHandler = null;
+  }
+}

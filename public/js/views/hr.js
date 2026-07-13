@@ -146,7 +146,15 @@ function renderOperativeHr(container, user, requests) {
         </div>
       </div>
 
-
+      <div class="card" style="grid-column:1/-1;">
+        <div class="card-title"><i class="fa-solid fa-clipboard-check"></i> Onboarding Checklist (${onboardPct}% Complete)</div>
+        <div style="background:hsl(var(--border)); border-radius:4px; height:6px; margin-bottom:16px; overflow:hidden;">
+          <div style="background:hsl(var(--primary)); height:100%; width:${onboardPct}%; transition:width 0.4s ease;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${checklist.map(item => renderChecklistItem(item)).join('')}
+        </div>
+      </div>
 
       <div class="card" style="grid-column:1/-1;">
         <div class="card-title">
@@ -176,6 +184,7 @@ function renderOperativeHr(container, user, requests) {
       </div>
     </div>
   `;
+
 
   document.getElementById('btn-edit-profile').addEventListener('click', () => showEditProfileModal(user));
   document.getElementById('btn-request-leave').addEventListener('click', showRequestLeaveModal);

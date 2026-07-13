@@ -370,7 +370,12 @@ window.closeProfileSheet = function() {
 };
 
 // SPA Routing Controller
+let _isRouting = false;
 async function routeView() {
+  // Prevent concurrent route changes (e.g. rapid navigation or hash redirect + hashchange firing together)
+  if (_isRouting) return;
+  _isRouting = true;
+
   const hash = window.location.hash || '#/dashboard';
   const mount = document.getElementById('view-mount');
   const viewTitle = document.getElementById('view-title');
@@ -399,16 +404,21 @@ async function routeView() {
   }
   viewTitle.textContent = formattedTitle;
 
+  // Destroy previous view FIRST to clean up its listeners, then clear the DOM
+  if (currentView && currentView.destroy) {
+    try {
+      currentView.destroy();
+    } catch (destroyErr) {
+      console.warn('Error in view destroy():', destroyErr);
+    }
+    currentView = null;
+  }
 
-  // Render view
+  // Render loading spinner
   mount.innerHTML = `<div style="display:flex; justify-content:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color:hsl(var(--primary));"></i></div>`;
 
   try {
     const module = await import(`./views/${route}.js`);
-    if (currentView && currentView.destroy) {
-      currentView.destroy();
-    }
-    
     currentView = module;
     if (module.init) {
       await module.init(mount);
@@ -423,8 +433,11 @@ async function routeView() {
         <button class="btn btn-primary" onclick="location.hash='#/dashboard'" style="margin-top:16px;">Go to Dashboard</button>
       </div>
     `;
+  } finally {
+    _isRouting = false;
   }
 }
+
 
 // Navigation hash change listener
 window.addEventListener('hashchange', routeView);

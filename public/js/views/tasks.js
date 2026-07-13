@@ -380,19 +380,36 @@ function showManageTaskModal(user, task, users) {
 
   const rejectBtn = document.getElementById('btn-reject-task');
   if (rejectBtn) {
-    rejectBtn.addEventListener('click', async () => {
-      const reason = prompt("Enter return/rejection reason for operative:");
-      if (reason === null) return; // cancel
-      
-      await updateTask(task.id, {
-        status: 'in_progress',
-        notes: `Returned: ${reason}. Original notes: ${task.notes || ''}`
-      });
-      
-      await createNotification(task.assignedTo, "Task Returned", `Your work on "${task.title}" was returned: ${reason}`, "task");
-      showToast("Task returned to operative.", "warning");
+    rejectBtn.addEventListener('click', () => {
       hideModal();
-      init(document.getElementById('view-mount'));
+      showModal({
+        title: 'Return Task to Operative',
+        bodyHTML: `
+          <div class="form-group">
+            <label class="form-label" for="reject-reason-input">Reason for returning this task:</label>
+            <textarea class="form-input" id="reject-reason-input" rows="3" required placeholder="Explain what needs to be redone or corrected..."></textarea>
+          </div>
+        `,
+        confirmText: 'Return Task',
+        cancelText: 'Cancel',
+        onConfirm: async (body) => {
+          const reason = body.querySelector('#reject-reason-input').value.trim();
+          if (!reason) {
+            showToast('Please enter a rejection reason.', 'error');
+            return;
+          }
+          await updateTask(task.id, {
+            status: 'in_progress',
+            notes: `Returned: ${reason}. Original notes: ${task.notes || ''}`
+          });
+          await createNotification(task.assignedTo, "Task Returned", `Your work on "${task.title}" was returned: ${reason}`, "task");
+          showToast("Task returned to operative.", "warning");
+          hideModal();
+          init(document.getElementById('view-mount'));
+        }
+      });
     });
   }
 }
+
+export function destroy() {}
