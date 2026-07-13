@@ -675,6 +675,34 @@ function setupGlobalListeners() {
     await logout();
   });
 
+  // PWA Share Link Button
+  const shareBtn = document.getElementById('pwa-share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const shareData = {
+        title: 'Workforce Platform',
+        text: 'Access and manage workforce schedules, tasks, and submission records.',
+        url: window.location.origin
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+        } catch (err) {
+          console.log('Share cancelled or failed:', err);
+        }
+      } else {
+        // Fallback: Copy to clipboard
+        try {
+          await navigator.clipboard.writeText(shareData.url);
+          showToast("App link copied to clipboard! 📋", "success");
+        } catch (err) {
+          showToast("Failed to copy link: " + err.message, "error");
+        }
+      }
+    });
+  }
+
   // Theme Toggle
   const themeToggle = document.getElementById('theme-toggle');
   themeToggle.addEventListener('click', () => {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'workforce-cache-v31';
+const CACHE_NAME = 'workforce-cache-v32';
 const ASSETS = [
   '/',
   '/index.html',
