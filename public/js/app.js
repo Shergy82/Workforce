@@ -919,7 +919,14 @@ function setupGlobalListeners() {
   // Mobile profile button
   const mobileProfileBtn = document.getElementById('mobile-profile-btn');
   if (mobileProfileBtn) {
-    mobileProfileBtn.addEventListener('click', () => window.openProfileSheet());
+    mobileProfileBtn.addEventListener('click', () => {
+      const sheet = document.getElementById('profile-sheet');
+      if (sheet && sheet.classList.contains('open')) {
+        window.closeProfileSheet();
+      } else {
+        window.openProfileSheet();
+      }
+    });
   }
 
   // Sheet overlay closes all sheets when tapped

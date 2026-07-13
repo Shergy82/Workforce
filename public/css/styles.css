@@ -231,29 +231,40 @@ main.main-content {
 }
 
 header.top-header {
-  height: calc(64px + env(safe-area-inset-top, 0px));
+  height: 64px;
   background-color: hsl(var(--bg-card));
   border-bottom: 1px solid hsl(var(--border));
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding: 0 24px 16px 24px;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding: 0 24px;
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 250; /* Keep header on top of bottom sheets and overlays so actions are always clickable */
   box-sizing: border-box;
+}
+
+.top-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 header.top-header h2 {
   font-size: 1.25rem;
   font-weight: 600;
+  margin: 0;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.mobile-profile-btn {
+  display: none !important; /* Hidden on desktop, shown on mobile only */
 }
 
 /* Page Shell Container */
@@ -1318,7 +1329,7 @@ table.data-table tr:last-child td {
 
 /* Mobile app logo icon in header (hidden on desktop) */
 .mobile-app-logo {
-  display: none;
+  display: none !important;
 }
 
 /* ============================================================
@@ -1358,7 +1369,7 @@ table.data-table tr:last-child td {
   }
 
   .mobile-app-logo {
-    display: block;
+    display: block !important;
     color: hsl(var(--primary));
     font-size: 1.2rem;
     flex-shrink: 0;
@@ -1386,6 +1397,7 @@ table.data-table tr:last-child td {
   }
 
   .mobile-profile-btn {
+    display: inline-flex !important; /* Show profile button on mobile */
     border-radius: 50% !important;
   }
 
