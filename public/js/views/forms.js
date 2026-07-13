@@ -197,7 +197,8 @@ function renderDynamicFormFields(container, tmpl, projectSelect) {
       });
 
       showToast("Checklist form submitted successfully!", "success");
-      tmplSelect.value = '';
+      const selectEl = document.getElementById('select-form-tmpl');
+      if (selectEl) selectEl.value = '';
       container.innerHTML = '';
     } catch (err) {
       showToast(err.message, "error");

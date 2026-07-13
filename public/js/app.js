@@ -6,6 +6,7 @@ import { getIconClass } from './components/icon.js';
 // Application state
 let currentView = null;
 let deferredPrompt = null;
+let activeGlobalListeners = [];
 
 // PWA Install Helper Logic
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -122,6 +123,98 @@ window.addEventListener('DOMContentLoaded', async () => {
   setupGlobalListeners();
 });
 
+// Real-time View Auto-Sync Coordinator
+function setupRealTimeCoordinator(user) {
+  cleanupRealTimeCoordinator();
+
+  if (isMockMode) return;
+
+  const initListeners = async () => {
+    try {
+      const { collection, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+      const { db } = await import('./firebase-config.js');
+
+      const isUserBusy = () => {
+        // 1. Is there an active input, select, or textarea focused?
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+          return true;
+        }
+        // 2. Is a modal open?
+        const modal = document.getElementById('modal-overlay');
+        if (modal && modal.style.display !== 'none' && modal.classList.contains('open')) {
+          return true;
+        }
+        // 3. Is a bottom sheet open?
+        const profileSheet = document.getElementById('profile-sheet');
+        const moreDrawer = document.getElementById('more-drawer');
+        if ((profileSheet && profileSheet.classList.contains('open')) || (moreDrawer && moreDrawer.classList.contains('open'))) {
+          return true;
+        }
+        // 4. Is the user currently dragging anything? (whiteboard planner)
+        if (window.isDraggingShift || document.querySelector('.gu-transit') || document.querySelector('.dragging')) {
+          return true;
+        }
+        return false;
+      };
+
+      const triggerSoftRefresh = () => {
+        if (isUserBusy()) {
+          console.log("Real-time update received but user is busy. Skipping refresh.");
+          return;
+        }
+        if (currentView && typeof currentView.init === 'function') {
+          const mount = document.getElementById('view-mount');
+          if (mount) {
+            console.log("Real-time coordinator: refreshing active view", window.location.hash);
+            currentView.init(mount).catch(err => console.error("Error soft-refreshing view:", err));
+          }
+        }
+      };
+
+      // Debounce triggerSoftRefresh so multiple collections changing together only fire once
+      let refreshTimeout = null;
+      const debouncedRefresh = () => {
+        if (refreshTimeout) clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(triggerSoftRefresh, 800);
+      };
+
+      // Define collections to watch
+      const collectionsToWatch = ['shifts', 'timesheets', 'tasks', 'holidayRequests', 'sites', 'formSubmissions'];
+      
+      collectionsToWatch.forEach(colName => {
+        try {
+          const unsub = onSnapshot(collection(db, colName), (snap) => {
+            if (snap.metadata.hasPendingWrites) return; // skip local writes
+            debouncedRefresh();
+          }, (err) => {
+            console.warn(`Real-time coordinator error for ${colName}:`, err);
+          });
+          activeGlobalListeners.push(unsub);
+        } catch (e) {
+          console.warn(`Could not setup real-time listener for ${colName}:`, e);
+        }
+      });
+
+      console.log("Real-time Coordinator successfully initialized.");
+    } catch (err) {
+      console.error("Failed to setup real-time coordinator:", err);
+    }
+  };
+
+  initListeners();
+}
+
+function cleanupRealTimeCoordinator() {
+  if (activeGlobalListeners && activeGlobalListeners.length > 0) {
+    console.log("Cleaning up real-time coordinator listeners.");
+    activeGlobalListeners.forEach(unsub => {
+      try { unsub(); } catch (e) {}
+    });
+    activeGlobalListeners = [];
+  }
+}
+
 // Manage Login / Logout Visual States
 async function handleAuthStateChange(user) {
   const authRoot = document.getElementById('auth-root');
@@ -138,6 +231,9 @@ async function handleAuthStateChange(user) {
     // Render Navigation
     renderSidebarMenu(user.role);
     renderBottomNav(user.role);
+
+    // Setup real-time updates auto-sync
+    setupRealTimeCoordinator(user);
 
     // Unsubscribe from previous listener if any
     if (window.notifUnsubscribe) {
@@ -256,6 +352,9 @@ async function handleAuthStateChange(user) {
     checkForAwaitingShifts(user);
     routeView();
   } else {
+    // Clean up real-time coordinator listeners
+    cleanupRealTimeCoordinator();
+
     // Clear notifications listener
     if (window.notifUnsubscribe) {
       window.notifUnsubscribe();
