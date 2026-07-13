@@ -473,7 +473,158 @@ function showSubmissionDetailsModal(sub) {
     confirmText: 'Print / Save PDF',
     cancelText: 'Close',
     onConfirm: () => {
-      window.print();
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert("Popup blocked! Please allow popups for this site to print.");
+        return;
+      }
+
+      // Generate printable HTML document
+      const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${sub.formTitle} - Submission Record</title>
+          <style>
+            body {
+              font-family: 'Inter', system-ui, -apple-system, sans-serif;
+              color: #0f172a;
+              padding: 40px;
+              line-height: 1.5;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .header {
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+            }
+            .title {
+              font-size: 1.8rem;
+              font-weight: 800;
+              color: #4f46e5;
+              margin: 0 0 6px 0;
+            }
+            .meta-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+              font-size: 0.9rem;
+              background-color: #f8fafc;
+              padding: 16px;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+              margin-bottom: 30px;
+            }
+            .meta-item {
+              margin: 0;
+            }
+            .section-title {
+              font-size: 1.05rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #475569;
+              letter-spacing: 0.05em;
+              margin-top: 30px;
+              margin-bottom: 16px;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 6px;
+            }
+            .response-item {
+              margin-bottom: 20px;
+              page-break-inside: avoid;
+            }
+            .question {
+              font-weight: 700;
+              font-size: 0.95rem;
+              color: #334155;
+              margin: 0 0 6px 0;
+            }
+            .answer {
+              font-size: 0.95rem;
+              margin: 0;
+              color: #0f172a;
+              background-color: #fafafa;
+              padding: 8px 12px;
+              border-radius: 4px;
+              border: 1px solid #f1f5f9;
+            }
+            .photo-evidence {
+              max-width: 100%;
+              max-height: 280px;
+              border-radius: 6px;
+              border: 1px solid #cbd5e1;
+              margin-top: 6px;
+              object-fit: contain;
+              display: block;
+            }
+            .signature-area {
+              margin-top: 40px;
+              page-break-inside: avoid;
+              border-top: 1px dashed #cbd5e1;
+              padding-top: 24px;
+            }
+            .signature-img {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              background-color: white;
+              max-height: 100px;
+              max-width: 240px;
+              object-fit: contain;
+              display: block;
+              margin-top: 8px;
+            }
+            @media print {
+              body { padding: 10px; }
+              @page { margin: 1.5cm; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 class="title">${sub.formTitle}</h1>
+            <p style="margin: 0; font-size: 0.95rem; color: #64748b;">Form Submission Record</p>
+          </div>
+
+          <div class="meta-grid">
+            <p class="meta-item"><strong>Submitted By:</strong> ${sub.userName}</p>
+            <p class="meta-item"><strong>Date:</strong> ${formatDate(sub.submittedAt)}</p>
+            <p class="meta-item"><strong>Project / Site:</strong> ${sub.projectTitle}</p>
+          </div>
+
+          <h2 class="section-title">Responses</h2>
+          <div class="responses-container">
+            ${sub.responses.map(r => `
+              <div class="response-item">
+                <p class="question">${r.name}</p>
+                ${r.type === 'photo' && r.value ? `
+                  <img src="${r.value}" class="photo-evidence">
+                ` : `
+                  <p class="answer">${r.value || 'N/A'}</p>
+                `}
+              </div>
+            `).join('')}
+          </div>
+
+          ${sub.signature ? `
+            <div class="signature-area">
+              <strong style="font-size: 0.95rem; color: #334155;">Signature</strong>
+              <img src="${sub.signature}" class="signature-img">
+            </div>
+          ` : ''}
+
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
     },
     bodyHTML: `
       <div style="display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">

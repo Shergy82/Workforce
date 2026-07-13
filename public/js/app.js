@@ -5,9 +5,113 @@ import { getIconClass } from './components/icon.js';
 
 // Application state
 let currentView = null;
+let deferredPrompt = null;
+
+// PWA Install Helper Logic
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) {
+    installBtn.style.display = 'inline-flex';
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const installBtn = document.getElementById('pwa-install-btn');
+  if (installBtn) installBtn.style.display = 'none';
+  const banner = document.getElementById('dashboard-install-banner');
+  if (banner) banner.style.display = 'none';
+  showToast("Workforce Hub installed successfully! 🎉", "success");
+});
+
+window.triggerInstallPrompt = async function() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to PWA prompt: ${outcome}`);
+    deferredPrompt = null;
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) installBtn.style.display = 'none';
+    const banner = document.getElementById('dashboard-install-banner');
+    if (banner) banner.style.display = 'none';
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    let instructionsHTML = '';
+    if (isIOS) {
+      instructionsHTML = `
+        <div style="text-align: center; padding: 12px 0;">
+          <i class="fa-solid fa-mobile-screen-button" style="font-size: 2.5rem; color: hsl(var(--primary)); margin-bottom: 12px; display: block;"></i>
+          <p style="font-weight:700; margin-bottom:8px;">iPhone/iPad requires Safari to install.</p>
+          <p style="color:hsl(var(--text-muted)); font-size:0.9rem; line-height:1.6; margin-bottom:16px;">
+            To add this dashboard app to your Home Screen:
+          </p>
+          <ol style="text-align:left; font-size:0.9rem; line-height:2; padding-left: 20px; color: hsl(var(--text-main));">
+            <li>Tap the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket"></i> at the bottom of Safari</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+            <li>Tap <strong>"Add"</strong> in the top right corner</li>
+          </ol>
+        </div>
+      `;
+    } else if (isSafari) {
+      instructionsHTML = `
+        <div style="text-align: center; padding: 12px 0;">
+          <i class="fa-brands fa-safari" style="font-size: 2.5rem; color: hsl(var(--primary)); margin-bottom: 12px; display: block;"></i>
+          <p style="font-weight:700; margin-bottom:8px;">Add to Dock on Safari macOS</p>
+          <p style="color:hsl(var(--text-muted)); font-size:0.9rem; line-height:1.6; margin-bottom:16px;">
+            To install as a macOS application:
+          </p>
+          <ol style="text-align:left; font-size:0.9rem; line-height:2; padding-left: 20px; color: hsl(var(--text-main));">
+            <li>Click the <strong>Share</strong> button <i class="fa-solid fa-arrow-up-from-bracket"></i> or open the <strong>File</strong> menu</li>
+            <li>Select <strong>"Add to Dock..."</strong></li>
+            <li>Click <strong>"Add"</strong> to confirm</li>
+          </ol>
+        </div>
+      `;
+    } else {
+      instructionsHTML = `
+        <div style="text-align: center; padding: 12px 0;">
+          <i class="fa-solid fa-laptop" style="font-size: 2.5rem; color: hsl(var(--primary)); margin-bottom: 12px; display: block;"></i>
+          <p style="font-weight:700; margin-bottom:8px;">Install Workforce App</p>
+          <p style="color:hsl(var(--text-muted)); font-size:0.9rem; line-height:1.6; margin-bottom:16px;">
+            To run this platform as an application:
+          </p>
+          <ol style="text-align:left; font-size:0.9rem; line-height:2; padding-left: 20px; color: hsl(var(--text-main));">
+            <li>Look for the <strong>App Install icon</strong> <i class="fa-solid fa-circle-plus"></i> in the browser search bar.</li>
+            <li>Or, open your browser settings menu and select <strong>"Install App"</strong> or <strong>"Add to Home Screen"</strong>.</li>
+          </ol>
+        </div>
+      `;
+    }
+
+    const { showModal, hideModal } = await import('./components/modal.js');
+    showModal({
+      title: '📲 Install Web Application',
+      bodyHTML: instructionsHTML,
+      confirmText: 'Got it!',
+      cancelText: null,
+      onConfirm: () => hideModal()
+    });
+  }
+};
 
 // Initialize app when DOM is loaded
 window.addEventListener('DOMContentLoaded', async () => {
+  // Check standalone mode
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  if (!isStandalone) {
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) {
+      installBtn.style.display = 'inline-flex';
+      installBtn.addEventListener('click', window.triggerInstallPrompt);
+    }
+  }
+
   // Initialize services
   await initializeFirebaseServices();
 

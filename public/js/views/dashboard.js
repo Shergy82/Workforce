@@ -50,7 +50,32 @@ function renderAdminDashboard(container, user, shifts, sites, users) {
   const incompleteCount = todayShifts.filter(s => s.status === 'incomplete').length;
   const cancelledCount = todayShifts.filter(s => s.status === 'cancelled').length;
 
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  const isBannerDismissed = sessionStorage.getItem('pwa_install_banner_dismissed') === 'true';
+
   container.innerHTML = `
+    ${(!isStandalone && !isBannerDismissed) ? `
+      <!-- PWA Install Promotion Banner -->
+      <div class="card" id="dashboard-install-banner" style="background: linear-gradient(135deg, hsl(var(--primary)/0.08) 0%, hsl(var(--accent)/0.08) 100%); border: 1px solid hsl(var(--primary)/0.2); padding: 18px 24px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; border-left: 5px solid hsl(var(--primary));">
+        <div style="display: flex; align-items: center; gap: 14px; min-width: 250px; flex: 1;">
+          <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(var(--primary)); color: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1.3rem;">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          <div>
+            <h4 style="font-weight: 800; font-size: 1rem; color: hsl(var(--primary)); margin: 0;">Install Workforce Dashboard App</h4>
+            <p style="font-size: 0.82rem; color: hsl(var(--text-muted)); margin-top: 3px; line-height: 1.4;">Access the workforce system directly from your Home Screen or Dock. Launch instantly, work with offline support, and enjoy an immersive full-screen experience.</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-left: auto;">
+          <button class="btn btn-primary" id="btn-install-dashboard-app" style="font-size: 0.8rem; padding: 10px 18px; font-weight: 700; white-space: nowrap; border-radius: var(--radius-sm);">
+            <i class="fa-solid fa-download" style="margin-right: 4px;"></i> Install Now
+          </button>
+          <button class="btn btn-secondary" id="btn-dismiss-install-banner" style="font-size: 0.8rem; padding: 10px 14px; white-space: nowrap; border-radius: var(--radius-sm);">Maybe Later</button>
+        </div>
+      </div>
+    ` : ''}
+
     <!-- Top Welcome Card -->
     <div class="card" style="background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%); color: white; border: none; padding: 24px; margin-bottom: 24px;">
       <h3 style="font-size: 1.6rem; font-weight: 700; margin-bottom: 6px;">Welcome Back, ${user.name}!</h3>
@@ -189,6 +214,26 @@ function renderAdminDashboard(container, user, shifts, sites, users) {
   // Search execution
   const searchInput = document.getElementById('global-search');
   const resultsDiv = document.getElementById('search-results-mount');
+
+  // PWA Install Promotion Events
+  const installBanner = document.getElementById('dashboard-install-banner');
+  const installBtn = document.getElementById('btn-install-dashboard-app');
+  const dismissBtn = document.getElementById('btn-dismiss-install-banner');
+
+  if (installBtn) {
+    installBtn.addEventListener('click', () => {
+      if (window.triggerInstallPrompt) {
+        window.triggerInstallPrompt();
+      }
+    });
+  }
+
+  if (dismissBtn && installBanner) {
+    dismissBtn.addEventListener('click', () => {
+      installBanner.style.display = 'none';
+      sessionStorage.setItem('pwa_install_banner_dismissed', 'true');
+    });
+  }
 
   searchInput.addEventListener('input', (e) => {
     const val = e.target.value.toLowerCase().trim();
