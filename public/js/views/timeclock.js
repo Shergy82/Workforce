@@ -86,7 +86,7 @@ async function renderClockView(container, user) {
               <select class="form-input" id="clock-in-project" required>
                 <option value="">-- Choose a Site --</option>
                 ${projects.map(p => `
-                  <option value="${p.id}" ${todayShifts.some(s => s.projectId === p.id) ? 'selected' : ''}>${p.name}</option>
+                  <option value="${p.id}" ${todayShifts.some(s => s.projectId === p.id) ? 'selected' : ''}>${p.address || p.scheme || p.name || 'Unnamed Site'}</option>
                 `).join('')}
               </select>
             </div>

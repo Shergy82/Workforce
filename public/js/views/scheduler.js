@@ -274,7 +274,7 @@ function showAddShiftModal(projects, users) {
         <div class="form-group">
           <label class="form-label" for="shift-project">Select Project Site</label>
           <select class="form-input" id="shift-project" required>
-            ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            ${projects.map(p => `<option value="${p.id}">${p.address || p.scheme || p.name || 'Unnamed Site'}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
@@ -400,13 +400,19 @@ async function parseAndImportCSV(csvText, projects, users) {
 
     // Find User and Project objects
     const worker = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    const project = projects.find(p => p.name.toLowerCase() === projectName.toLowerCase());
+    const project = projects.find(p => {
+      const nameMatch = (p.name || '').toLowerCase() === projectName.toLowerCase();
+      const addrMatch = (p.address || '').toLowerCase() === projectName.toLowerCase();
+      const schemeMatch = (p.scheme || '').toLowerCase() === projectName.toLowerCase();
+      const eNumMatch = (p.eNumber || '').toLowerCase() === projectName.toLowerCase();
+      return nameMatch || addrMatch || schemeMatch || eNumMatch;
+    });
 
     if (worker && project) {
       const payload = {
         userId: worker.id,
         projectId: project.id,
-        projectTitle: project.name,
+        projectTitle: project.address || project.scheme || project.name || 'Unnamed Site',
         date,
         startTime,
         endTime,

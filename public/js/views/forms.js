@@ -56,7 +56,7 @@ function renderOperativeForms(container, user, forms, projects) {
           <label class="form-label" for="select-form-proj">Related Site Project</label>
           <select class="form-input" id="select-form-proj" required>
             <option value="">-- Choose Site --</option>
-            ${projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+            ${projects.map(p => `<option value="${p.id}">${p.address || p.scheme || p.name || 'Unnamed Site'}</option>`).join('')}
           </select>
         </div>
       </form>
@@ -324,19 +324,24 @@ function renderAdminForms(container, user, templates, submissions, projects, use
               </tr>
             </thead>
             <tbody>
-              ${submissions.map(sub => `
+              ${submissions.map(sub => {
+                const projectDisplay = (!sub.projectTitle || sub.projectTitle === 'undefined')
+                  ? (projects.find(p => p.id === sub.projectId)?.address || 'Unnamed Site')
+                  : sub.projectTitle;
+                return `
                 <tr>
                   <td>${formatDate(sub.submittedAt)}</td>
                   <td style="font-weight:600;">${sub.userName}</td>
                   <td>${sub.formTitle}</td>
-                  <td>${sub.projectTitle}</td>
+                  <td>${projectDisplay}</td>
                   <td>
                     <button class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" data-action="view-sub" data-sub-id="${sub.id}">
                       <i class="fa-solid fa-file-invoice"></i> View Details / PDF
                     </button>
                   </td>
                 </tr>
-              `).join('')}
+                `;
+              }).join('')}
             </tbody>
           </table>
         </div>
